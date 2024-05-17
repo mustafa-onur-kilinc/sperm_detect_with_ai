@@ -1,0 +1,13 @@
+dataset_name: "Hamza_Hoca_Dataset"
+
+# List to append 'Ekran'/'Telefon' to patient name
+ground_truth_src_name: ["ENSAR_MORGİL_311023"]
+is_src_name_telefon: False
+video_name: "Vid0177"
+
+runs_dir_name: "runs"
+detect_dir_name: "detect"
+predict_dir_name: "predict_yolov8s_30_epoch_ekran"
+
+# Image size (width x height) is used to transform YOLO labels
+image_size: [1920, 1080]  
