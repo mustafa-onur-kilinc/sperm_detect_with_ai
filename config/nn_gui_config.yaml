@@ -1,0 +1,11 @@
+runs_dirname: "runs"
+detect_dirname: "detect"
+train_dirname: "train_yolov8s_30_epoch_ekran-2"
+weights_dirname: "weights"
+weight_name: "best.pt"
+
+# Predict args because can't pass args yaml file to YOLO.predict
+imgsz: [1920, 1080]
+show: False
+stream: False
+line_width: 2

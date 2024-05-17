@@ -1,0 +1,47 @@
+# Directory names to access trained weights for models
+weights_dirname: "weights"
+yolo_weight_dirname: "yolov8"
+faster_rcnn_weight_dirname: "faster_rcnn"
+retina_net_weight_dirname: "retina_net"
+yolo_weight_name: "best.pt"
+faster_rcnn_weight_name: "FasterRCNN_resnet50_epoch_20.pth"
+retina_net_weight_name: "RetinaNet_resnet50_epoch_18.pth"
+
+# Predict args for YOLO
+imgsz: [1920, 1080]
+show: False
+stream: False
+line_width: 2
+
+# GUI arguments
+background: "gray25"
+title: "Sperm Detection with AI"
+geometry: "1160x600"  # In WidthxHeight format, no spaces before or after x
+model_options:
+- "--Model--"
+- yolov8s
+- faster_rcnn
+- retina_net
+save_options:
+- "--File Format--"
+- txt
+- txt_yolo
+- json
+label_options:
+- "--Label Type--"
+- Sperm
+- Non-Sperm
+
+# Labels on Canvas options
+x_threshold: 5  # x_threshold and y_threshold are to prevent users from drawing
+y_threshold: 5  # too small boxes
+text_distance_x: 5
+text_distance_y: 5
+
+# Colors are from ttkbootstrap's "superhero" theme
+primary_color: "#4c9be8"
+success_color: "#5cb85c"
+warning_color: "#f0ad4e"
+danger_color: "#d9534f"
+active_color: "#526170"
+highlight_bg_color: "#222222"
