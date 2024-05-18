@@ -688,7 +688,7 @@ class NeuralNetworkGUI():
         None
         """
         
-        if self.cv_image is not None and self.pred_labels != []:
+        if self.cv_image is not None:
             width = abs(self.x0 - self.x1)
             height = abs(self.y0 - self.y1)
             smaller_x = self.x0 if self.x0 < self.x1 else self.x1
@@ -706,14 +706,37 @@ class NeuralNetworkGUI():
 
             pred_class = 0
 
-            # Gets the last label's counter and adds 1 to it
-            counter = self.pred_labels[1][-1][0] + 1
-
-            if width > self.x_threshold and height > self.y_threshold:
+            if (self.pred_labels == [] and width > self.x_threshold and 
+                    height > self.y_threshold):
+                counter = 1
+                
+                self.pred_labels.append(self.chosen_image_name)
+                self.pred_labels.append([[counter, pred_class, 
+                                         normalized_x_middle, 
+                                         normalized_y_middle, 
+                                         normalized_width, normalized_height]])
+                self.pred_label_ids.append(counter)
+            elif (self.pred_labels != [] and self.pred_labels[1] == [] and 
+                    width > self.x_threshold and height > self.y_threshold):
+                # Enters this elif block if user adds a single label and
+                # decides to delete that labels afterwards
+                counter = 1
+                
+                self.pred_labels.append([[counter, pred_class, 
+                                         normalized_x_middle, 
+                                         normalized_y_middle, 
+                                         normalized_width, normalized_height]])
+                self.pred_label_ids.append(counter)
+            elif (self.pred_labels != [] and self.pred_labels[1] != [] and
+                    width > self.x_threshold and height > self.y_threshold):
+                # Gets the last label's counter and adds 1 to it
+                counter = self.pred_labels[1][-1][0] + 1
+                
                 self.pred_labels[1].append([counter, pred_class, 
                                             normalized_x_middle, 
                                             normalized_y_middle, 
                                             normalized_width, normalized_height])
+                self.pred_label_ids.append(counter)
                 
             self.x0 = self.y0 = self.x1 = self.y1 = None
 
@@ -771,32 +794,56 @@ class NeuralNetworkGUI():
         self.pred_complete_label.config(text="Prediction complete.")
 
         # To prevent multiple predictions from piling on a list
-        if self.pred_labels != []:
+        if (self.pred_labels != [] and 
+                self.pred_labels[0] != self.chosen_image_name):
             self.pred_labels = []
         
         for result in results:
             boxes_cls = result.boxes.cls.cpu().numpy()
             boxes_xywhn = result.boxes.xywhn.cpu().numpy()
 
-            counter = 1
-            self.pred_labels.append(self.chosen_image_name)
-            pred_labels = []
+            if self.pred_labels == []:
+                counter = 1
+                self.pred_labels.append(self.chosen_image_name)
+
+                pred_labels = []
             
-            for (box_cls, box_xywhn) in zip(boxes_cls, boxes_xywhn):
-                pred_label_info = []
-                pred_label_info.append(counter)
-                pred_label_info.append(int(box_cls))
-                pred_label_info.append(float(box_xywhn[0]))
-                pred_label_info.append(float(box_xywhn[1]))
-                pred_label_info.append(float(box_xywhn[2]))
-                pred_label_info.append(float(box_xywhn[3]))
+                for (box_cls, box_xywhn) in zip(boxes_cls, boxes_xywhn):
+                    pred_label_info = []
+                    pred_label_info.append(counter)
+                    pred_label_info.append(int(box_cls))
+                    pred_label_info.append(float(box_xywhn[0]))
+                    pred_label_info.append(float(box_xywhn[1]))
+                    pred_label_info.append(float(box_xywhn[2]))
+                    pred_label_info.append(float(box_xywhn[3]))
+    
+                    pred_labels.append(pred_label_info)
+                    self.pred_label_ids.append(counter)
+    
+                    counter += 1
+    
+                self.pred_labels.append(pred_labels)
+            else:
+                # If self.pred_labels is not empty, user has added
+                # labels before prediction
+                counter = self.pred_labels[1][-1][0] + 1
 
-                pred_labels.append(pred_label_info)
-                self.pred_label_ids.append(counter)
-
-                counter += 1
-
-            self.pred_labels.append(pred_labels)
+                # If self.pred_labels is not empty, self.pred_labels[1]
+                # exists and is a list, that makes a separate list of
+                # labels (pred_labels) unnecessary
+                for (box_cls, box_xywhn) in zip(boxes_cls, boxes_xywhn):
+                    pred_label_info = []
+                    pred_label_info.append(counter)
+                    pred_label_info.append(int(box_cls))
+                    pred_label_info.append(float(box_xywhn[0]))
+                    pred_label_info.append(float(box_xywhn[1]))
+                    pred_label_info.append(float(box_xywhn[2]))
+                    pred_label_info.append(float(box_xywhn[3]))
+    
+                    self.pred_labels[1].append(pred_label_info)
+                    self.pred_label_ids.append(counter)
+    
+                    counter += 1            
 
             if self.original_pred_labels_len is None:
                 self.original_pred_labels_len = len(self.pred_labels[1])
@@ -841,7 +888,8 @@ class NeuralNetworkGUI():
         self.pred_complete_label.config(text="Prediction complete.")
 
         # To prevent multiple predictions from piling on a list
-        if self.pred_labels != []:
+        if (self.pred_labels != [] and 
+                self.pred_labels[0] != self.chosen_image_name):
             self.pred_labels = []
 
         image_width = self.imgsz[0]
@@ -852,45 +900,88 @@ class NeuralNetworkGUI():
             scores = result["scores"]
             classes = result["labels"].tolist()
 
-            counter = 1
-            self.pred_labels.append(self.chosen_image_name)
-            pred_labels = []
+            if self.pred_labels == []:
+                counter = 1
+                self.pred_labels.append(self.chosen_image_name)
+
+                pred_labels = []
             
-            for (cls, score, box) in zip(classes, scores, boxes):
-                if score > 0.5:
-                    pred_label_info = []
-
-                    # Makes sperm class 0, non-sperm 1
-                    cls = 0 if cls == 1 else 1
-
-                    x0, x1 = int(box[0]), int(box[2])
-                    y0, y1 = int(box[1]), int(box[3])
-                    
-                    width = abs(x0 - x1)
-                    height = abs(y0 - y1)
-                    smaller_x = x0 if x0 < x1 else x1
-                    smaller_y = y0 if y0 < y1 else y1
-
-                    x_middle = smaller_x + width // 2
-                    y_middle = smaller_y + height // 2
-                    normalized_width = width / image_width
-                    normalized_height = height / image_height
-                    normalized_x_middle = x_middle / image_width
-                    normalized_y_middle = y_middle / image_height
-
-                    pred_label_info.append(counter)
-                    pred_label_info.append(int(cls))
-                    pred_label_info.append(normalized_x_middle)
-                    pred_label_info.append(normalized_y_middle)
-                    pred_label_info.append(normalized_width)
-                    pred_label_info.append(normalized_height)
-                    
-                    pred_labels.append(pred_label_info)
-                    self.pred_label_ids.append(counter)
+                for (cls, score, box) in zip(classes, scores, boxes):
+                    if score > 0.5:
+                        pred_label_info = []
     
-                    counter += 1
+                        # Makes sperm class 0, non-sperm 1
+                        cls = 0 if cls == 1 else 1
+    
+                        x0, x1 = int(box[0]), int(box[2])
+                        y0, y1 = int(box[1]), int(box[3])
+                        
+                        width = abs(x0 - x1)
+                        height = abs(y0 - y1)
+                        smaller_x = x0 if x0 < x1 else x1
+                        smaller_y = y0 if y0 < y1 else y1
+    
+                        x_middle = smaller_x + width // 2
+                        y_middle = smaller_y + height // 2
+                        normalized_width = width / image_width
+                        normalized_height = height / image_height
+                        normalized_x_middle = x_middle / image_width
+                        normalized_y_middle = y_middle / image_height
+    
+                        pred_label_info.append(counter)
+                        pred_label_info.append(int(cls))
+                        pred_label_info.append(normalized_x_middle)
+                        pred_label_info.append(normalized_y_middle)
+                        pred_label_info.append(normalized_width)
+                        pred_label_info.append(normalized_height)
+                        
+                        pred_labels.append(pred_label_info)
+                        self.pred_label_ids.append(counter)
+        
+                        counter += 1
+    
+                self.pred_labels.append(pred_labels)
+            else:
+                # If self.pred_labels is not empty, user has added
+                # labels before prediction
+                counter = self.pred_labels[1][-1][0] + 1
 
-            self.pred_labels.append(pred_labels)
+                # If self.pred_labels is not empty, self.pred_labels[1]
+                # exists and is a list, that makes a separate list of
+                # labels (pred_labels) unnecessary
+                for (cls, score, box) in zip(classes, scores, boxes):
+                    if score > 0.5:
+                        pred_label_info = []
+    
+                        # Makes sperm class 0, non-sperm 1
+                        cls = 0 if cls == 1 else 1
+    
+                        x0, x1 = int(box[0]), int(box[2])
+                        y0, y1 = int(box[1]), int(box[3])
+                        
+                        width = abs(x0 - x1)
+                        height = abs(y0 - y1)
+                        smaller_x = x0 if x0 < x1 else x1
+                        smaller_y = y0 if y0 < y1 else y1
+    
+                        x_middle = smaller_x + width // 2
+                        y_middle = smaller_y + height // 2
+                        normalized_width = width / image_width
+                        normalized_height = height / image_height
+                        normalized_x_middle = x_middle / image_width
+                        normalized_y_middle = y_middle / image_height
+    
+                        pred_label_info.append(counter)
+                        pred_label_info.append(int(cls))
+                        pred_label_info.append(normalized_x_middle)
+                        pred_label_info.append(normalized_y_middle)
+                        pred_label_info.append(normalized_width)
+                        pred_label_info.append(normalized_height)
+                        
+                        self.pred_labels[1].append(pred_label_info)
+                        self.pred_label_ids.append(counter)
+        
+                        counter += 1
 
             if self.original_pred_labels_len is None:
                 self.original_pred_labels_len = len(self.pred_labels[1])
@@ -939,7 +1030,8 @@ class NeuralNetworkGUI():
         self.pred_complete_label.config(text="Prediction complete.")
 
         # To prevent multiple predictions from piling on a list
-        if self.pred_labels != []:
+        if (self.pred_labels != [] and 
+                self.pred_labels[0] != self.chosen_image_name):
             self.pred_labels = []
 
         image_width = self.imgsz[0]
@@ -950,46 +1042,86 @@ class NeuralNetworkGUI():
             scores = result["scores"]
             classes = result["labels"].tolist()
 
-            counter = 1
-            self.pred_labels.append(self.chosen_image_name)
-            pred_labels = []
+            if self.pred_labels == []:
+                counter = 1
+                self.pred_labels.append(self.chosen_image_name)
+
+                pred_labels = []
             
-            for (cls, score, box) in zip(classes, scores, boxes):
-                if score > 0.5:
-                    pred_label_info = []
-
-                    # Makes sperm class 0, non-sperm class 1
-                    cls = 0 if cls == 1 else 1
-
-                    x0, x1 = int(box[0]), int(box[2])
-                    y0, y1 = int(box[1]), int(box[3])
-                    
-                    width = abs(x0 - x1)
-                    height = abs(y0 - y1)
-                    smaller_x = x0 if x0 < x1 else x1
-                    smaller_y = y0 if y0 < y1 else y1
-
-                    x_middle = smaller_x + width // 2
-                    y_middle = smaller_y + height // 2
-                    normalized_width = width / image_width
-                    normalized_height = height / image_height
-                    normalized_x_middle = x_middle / image_width
-                    normalized_y_middle = y_middle / image_height
-
-                    pred_label_info.append(counter)
-                    pred_label_info.append(int(cls))
-                    pred_label_info.append(normalized_x_middle)
-                    pred_label_info.append(normalized_y_middle)
-                    pred_label_info.append(normalized_width)
-                    pred_label_info.append(normalized_height)
-                    
-                    pred_labels.append(pred_label_info)
-                    self.pred_label_ids.append(counter)
+                for (cls, score, box) in zip(classes, scores, boxes):
+                    if score > 0.5:
+                        pred_label_info = []
     
-                    counter += 1
-
-            self.pred_labels.append(pred_labels)
-
+                        # Makes sperm class 0, non-sperm class 1
+                        cls = 0 if cls == 1 else 1
+    
+                        x0, x1 = int(box[0]), int(box[2])
+                        y0, y1 = int(box[1]), int(box[3])
+                        
+                        width = abs(x0 - x1)
+                        height = abs(y0 - y1)
+                        smaller_x = x0 if x0 < x1 else x1
+                        smaller_y = y0 if y0 < y1 else y1
+    
+                        x_middle = smaller_x + width // 2
+                        y_middle = smaller_y + height // 2
+                        normalized_width = width / image_width
+                        normalized_height = height / image_height
+                        normalized_x_middle = x_middle / image_width
+                        normalized_y_middle = y_middle / image_height
+    
+                        pred_label_info.append(counter)
+                        pred_label_info.append(int(cls))
+                        pred_label_info.append(normalized_x_middle)
+                        pred_label_info.append(normalized_y_middle)
+                        pred_label_info.append(normalized_width)
+                        pred_label_info.append(normalized_height)
+                        
+                        pred_labels.append(pred_label_info)
+                        self.pred_label_ids.append(counter)
+        
+                        counter += 1
+    
+                self.pred_labels.append(pred_labels)
+            else:
+                # If self.pred_labels is not empty, user has added
+                # labels before prediction
+                counter = self.pred_labels[1][-1][0] + 1
+                
+                for (cls, score, box) in zip(classes, scores, boxes):
+                    if score > 0.5:
+                        pred_label_info = []
+    
+                        # Makes sperm class 0, non-sperm class 1
+                        cls = 0 if cls == 1 else 1
+    
+                        x0, x1 = int(box[0]), int(box[2])
+                        y0, y1 = int(box[1]), int(box[3])
+                        
+                        width = abs(x0 - x1)
+                        height = abs(y0 - y1)
+                        smaller_x = x0 if x0 < x1 else x1
+                        smaller_y = y0 if y0 < y1 else y1
+    
+                        x_middle = smaller_x + width // 2
+                        y_middle = smaller_y + height // 2
+                        normalized_width = width / image_width
+                        normalized_height = height / image_height
+                        normalized_x_middle = x_middle / image_width
+                        normalized_y_middle = y_middle / image_height
+    
+                        pred_label_info.append(counter)
+                        pred_label_info.append(int(cls))
+                        pred_label_info.append(normalized_x_middle)
+                        pred_label_info.append(normalized_y_middle)
+                        pred_label_info.append(normalized_width)
+                        pred_label_info.append(normalized_height)
+                        
+                        self.pred_labels[1].append(pred_label_info)
+                        self.pred_label_ids.append(counter)
+        
+                        counter += 1
+    
             if self.original_pred_labels_len is None:
                 self.original_pred_labels_len = len(self.pred_labels[1])
 
