@@ -1,0 +1,12 @@
+runs_dir_name: "runs"
+detect_dir_name: "detect"
+predict_dir_name: "predict"
+
+dataset_dir_name: "Hamza_Hoca_Dataset"
+
+src_dir: ["Ömer_Faruk_Kiraz"]
+is_src_dir_Telefon: False
+
+video_name: "Vid0065"
+
+save_ground_truth_images: True
