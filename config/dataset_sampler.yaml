@@ -1,0 +1,34 @@
+dataset_name: "Hamza_Hoca_Dataset"
+
+# List to append 'Ekran'/'Telefon' to patient name 
+src_name: ["Özgür_Cevahir_281123"]
+
+# Two options: Telefon (True) or Ekran (False)
+is_src_name_telefon: True  
+
+# destination directory is relative to main directory
+dest_name: "Hamza_Hoca_Telefon_Dataset_YOLO" 
+
+images_src_name: "Vid20231128_104920"
+
+train_dir_name: "train"
+valid_dir_name: "valid"
+test_dir_name: "test"
+images_dst_name: "images"
+labels_dst_name: "labels"
+
+# If False, value of validSplitRate will be added to 
+# trainSplitRate
+isTrainValidSplit: True  
+
+# This variable is n in 1/n sampling rate
+sampling_rate: 1
+
+# validSplitRate will be calculated according to all of dataset, 
+# instead of training split. Eg. in order to have a %80-%20-%20 
+# training-validation-test split, you need to assign 0.64, 0.16 
+# and 0.2 values to trainSplitRate, validSplitRate and 
+# testSplitRate respectively.
+trainSplitRate: 0.64
+validSplitRate: 0.16
+testSplitRate: 0.2
