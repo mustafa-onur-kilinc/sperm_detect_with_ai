@@ -1,0 +1,9 @@
+dataset_name: "Hamza_Hoca_Dataset"
+
+# List to append 'Ekran'/'Telefon' to patient name 
+src_name: ["Özgür_Cevahir_281123"]
+
+# Two options: Telefon (True) or Ekran (False)
+is_src_name_telefon: True  
+
+video_name: "Vid20231128_104920.mp4"
