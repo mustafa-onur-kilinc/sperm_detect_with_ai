@@ -1,0 +1,14 @@
+# Enter width and height of frames here 
+# (frame resolution = width x height)
+frame_width: 1920
+frame_height: 1080
+
+dataset_name: "Hamza_Hoca_Dataset"
+
+# List to append 'Ekran'/'Telefon' to patient name 
+src_name: ["ÖMER_SANCAKTUTAN_121023"]
+
+# Two options: Telefon (True) or Ekran (False)
+is_src_name_telefon: True
+
+json_file_name: "Vid20231012_113533_formatted.json"
