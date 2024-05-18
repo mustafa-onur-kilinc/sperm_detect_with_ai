@@ -123,7 +123,7 @@ class DatasetSampler():
 
         config_dirname = "config"
         yaml_name = "dataset_sampler.yaml"
-        yaml_dir = os.path.join(config_dirname, yaml_name)
+        yaml_dir = os.path.join(main_dir, config_dirname, yaml_name)
 
         with open(yaml_dir, encoding="utf8") as yaml_file:
             args_dict = yaml.safe_load(yaml_file)
