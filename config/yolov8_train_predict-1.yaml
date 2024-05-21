@@ -1,0 +1,31 @@
+# True for training, False for prediction
+is_training: True
+
+# train parameters
+train_dataset_name: "Hamza_Hoca_Ekran_Dataset_YOLO"
+dataset_yaml_name: "dataset.yaml"
+custom_cfg_name: "custom_train_config.yaml"
+
+# predict parameters
+test_dataset_name: "Hamza_Hoca_Dataset"
+patient_name: ["Ömer_Faruk_Kiraz"]
+
+# True for Telefon, False for Ekran
+is_patient_dir_telefon: False
+
+# True for prediction with videos, 
+# False for prediction with image folders
+is_test_dir_video: True
+test_video_name: "Vid0065"
+
+# weight parameters
+runs_dirname: ["runs", "detect"]
+train_folder_name: "train_yolov8s_30_epoch_ekran-2"
+weights_folder_name: "weights"
+self.yolo_weight: "yolov8s.pt"
+
+# YOLO Predict function arguments
+self.imgsz: [1920, 1080]
+self.save: True
+self.stream: False
+self.line_width: 2
