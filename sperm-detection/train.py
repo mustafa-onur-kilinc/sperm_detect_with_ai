@@ -4,8 +4,8 @@ Script by Özgün Zeki BOZKURT.
 Made very minor changes by Mustafa Onur KILINÇ to obey 
 PEP8 maximum line length. Didn't test the script after making these 
 changes but considering they are minor changes like defining string 
-variables and turning ternary operators to if-else blocks, it should be
-fine.
+variables, turning ternary operators to if-else blocks and adding 
+newlines before parameters of functions, it should be fine.
 """
 
 import sys
@@ -77,17 +77,20 @@ def train(
 
     # Specific dataset directory structure
     images_train_path = os.path.join(dataset_path, "train", "images")
-    labels_train_path = os.path.join(dataset_path, "train", "labels-corner-coordinates")
+    labels_train_path = os.path.join(dataset_path, "train", 
+                                     "labels-corner-coordinates")
 
     images_val_path = os.path.join(dataset_path, "test", "images")
-    labels_val_path = os.path.join(dataset_path, "test", "labels-corner-coordinates")
+    labels_val_path = os.path.join(dataset_path, "test", 
+                                   "labels-corner-coordinates")
 
     # Perform resizing, convert images to tensors, normalize RGB values into [0,1]
     transform = transforms.Compose(
         [
             transforms.Resize(resize),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                 std=[0.229, 0.224, 0.225]),
         ]
     )
 
@@ -95,7 +98,9 @@ def train(
     dataset_train = CustomDataset(
         images_train_path, labels_train_path, transforms=transform
     )
-    dataset_val = CustomDataset(images_val_path, labels_val_path, transforms=transform)
+    dataset_val = CustomDataset(
+        images_val_path, labels_val_path, transforms=transform
+    )
 
     data_loader_train = DataLoader(
         dataset_train,
