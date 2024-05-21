@@ -1,0 +1,15 @@
+eval_on_test_dataset: False
+
+dataset_name: "Hamza_Hoca_Ekran_Dataset_YOLO"
+train_dirname: "train"
+test_dirname: "test"
+results_dirname: ["bitirme-1", "dataset-testing"]
+videos_count: 17
+
+num_classes: 2
+class_names: ["0", "1"]
+
+runs_dirname: "runs"
+detect_dirname: "detect"
+weights_dirname: ["train_yolov8s_30_epoch_ekran-2", "weights"]
+weights_name: "best.pt"
