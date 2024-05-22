@@ -463,7 +463,7 @@ class NeuralNetworkGUI():
             self.draw_labels()
         else:
             self.chosen_img_label.config(text=f"Chosen Image: ")
-            self.canvas.r  # self.canvas.r ?
+            # self.canvas.r  # self.canvas.r ?
 
     def load_labels(self):
         """
