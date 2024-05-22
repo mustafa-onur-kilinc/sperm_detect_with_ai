@@ -46,6 +46,12 @@ New Mexico Tech, accessed 16 May 2024,
 ohmu 2016, "How to clear text field part of ttk.Combobox?", 
 Stack Exchange Inc., accessed 16 May 2024,
 <https://stackoverflow.com/a/35236892>
+
+Bernd Klein 2022, "9. Sliders in Tkinter", accessed 22 May 2024,
+<https://python-course.eu/tkinter/sliders-in-tkinter.php>
+
+John W. Shipman 2013, "21. The Scale widget", accessed 22 May 2024,
+<https://anzeljg.github.io/rin2/book2/2405/docs/tkinter/scale.html>
 """
 
 import os
@@ -133,6 +139,7 @@ class NeuralNetworkGUI():
         self.parent.config(background=gui_background)
 
         self.label_id = tkinter.StringVar()
+        self.frame_num = tkinter.IntVar()
 
         self.init_window()
 
@@ -210,7 +217,10 @@ class NeuralNetworkGUI():
                                            background="gray25")
         label_update_frame.pack(side="bottom")
 
-        # label_row_col naming convention
+        slider_frame = tkinter.Frame(self.parent, padx=10,
+                                     background="gray25")
+        slider_frame.pack(side="bottom")
+
         self.chosen_img_label = tkinter.Label(labels_frame, 
                                               text="Chosen Image:", 
                                               anchor="center",
@@ -252,6 +262,58 @@ class NeuralNetworkGUI():
                              side="left", expand=True)
         self.model_menu.set(self.model_options[0])
 
+        save_labels_button = tkinter.Button(options_frame, text="Save Labels", 
+                                           anchor="center", foreground="white",
+                                           background=self.success_color,
+                                           activebackground=self.active_color, 
+                                           borderwidth=0,
+                                           command=self.save_preds_to_disk)
+        save_labels_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
+                                ipady=10, side="left", expand=True)
+
+        close_button = tkinter.Button(options_frame, text="Close",
+                                      anchor="center", foreground="white",
+                                      background=self.danger_color,
+                                      activebackground=self.active_color,
+                                      borderwidth=0, command=self.close_window)
+        close_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10, 
+                          side="left", expand=True)
+
+        self.canvas = tkinter.Canvas(self.parent, background="gray25", 
+                                     borderwidth=0,
+                                     highlightbackground=self.highlight_bg_color, 
+                                     highlightthickness=2)
+        self.canvas.pack(fill="both", side="top", padx=10, pady=10, expand=True)
+
+        previous_img_button = tkinter.Button(left_arrow_frame, text="\u2190",
+                                             anchor="center",
+                                             foreground="white",
+                                             background="#4c9be8",
+                                             activebackground="#526170",
+                                             borderwidth=0, font=arial25,
+                                             command=self.open_previous_image)
+        previous_img_button.pack(fill="none", side="left", expand=True)
+        
+        next_img_button = tkinter.Button(right_arrow_frame, text="\u2192",
+                                         anchor="center", 
+                                         foreground="white",
+                                         background="#4c9be8",
+                                         activebackground="#526170",
+                                         borderwidth=0, font=arial25,
+                                         command=self.open_next_image)
+        next_img_button.pack(fill="none", side="right", expand=True)
+
+        self.frame_slider = tkinter.Scale(slider_frame, background="gray25",
+                                          foreground="white", 
+                                          orient="horizontal",
+                                          state="disabled", border=0,
+                                          highlightthickness=0,
+                                          length=1000, label="Frame Number", 
+                                          from_=1, to=700, relief="flat",
+                                          variable=self.frame_num,
+                                          command=self.slide_image)
+        self.frame_slider.pack(fill="none", side="top", expand=True)
+
         change_label_button = tkinter.Button(label_update_frame, 
                                              text="Change Label",
                                              anchor="center", foreground="white",
@@ -284,12 +346,14 @@ class NeuralNetworkGUI():
         label_id_entry.pack(fill="none", padx=20, pady=10, ipadx=10, 
                             ipady=10, side="left", expand=True)
 
-        change_label_id_button = tkinter.Button(label_update_frame, text="Change ID",
-                                          anchor="center", foreground="white",
-                                          background=self.warning_color,  
-                                          activebackground=self.active_color,
-                                          borderwidth=0, 
-                                          command=self.update_labels)
+        change_label_id_button = tkinter.Button(label_update_frame, 
+                                                text="Change ID",
+                                                anchor="center", 
+                                                foreground="white",
+                                                background=self.warning_color,  
+                                                activebackground=self.active_color,
+                                                borderwidth=0, 
+                                                command=self.update_labels)
         change_label_id_button.pack(fill="none", padx=0, pady=10, ipadx=10, 
                                     ipady=10, side="left", expand=True)
 
@@ -368,6 +432,9 @@ class NeuralNetworkGUI():
         
         if self.folder_name != "":
             self.images_list = os.listdir(self.folder_name)
+
+            # Used to set upper limit of self.frame_slider
+            images_count = len(self.images_list)
             
             # Sort the list based on frame number
             self.images_list.sort(key=extract_frame_number)
@@ -384,7 +451,8 @@ class NeuralNetworkGUI():
                 # Made a string variable to obey 
                 # PEP8 maximum line length
                 msg = "The labels directory already exists. "
-                msg += "Do you want to use the existing directory or overwrite it?"
+                msg += "Do you want to use the existing directory or "
+                msg += "overwrite it?"
                 msg += "\n\nYes: Use existing\nNo: Overwrite\n"
                 msg += "Cancel: Cancel operation"
 
@@ -464,6 +532,8 @@ class NeuralNetworkGUI():
         else:
             self.chosen_img_label.config(text=f"Chosen Image: ")
             # self.canvas.r  # self.canvas.r ?
+
+        self.frame_slider.config(state="normal", to=images_count)
 
     def load_labels(self):
         """
@@ -712,7 +782,61 @@ class NeuralNetworkGUI():
             else:
                 self.chosen_img_label.config(text=f"Chosen Image: ")
                 self.canvas.r
-            
+
+    def slide_image(self, scale):
+        """
+        Gets last scale value from self.frame_slider, uses it to open 
+        image with scale index in self.images_list
+
+        Parameters
+        ----------
+        scale : float
+            Shows chosen value of self.frame_slider
+
+        Returns
+        ----------
+        None 
+        """
+        
+        # This if-else is to prevent IndexError 
+        # when scale = len(self.images_list)
+        if int(scale) < len(self.images_list):
+            self.chosen_image_name = self.images_list[int(scale)]
+        else:
+            self.chosen_image_name = self.images_list[-1]
+
+        file_dir = os.path.join(self.folder_name, self.chosen_image_name)
+
+        # Resetting self.cv_image if an image has been opened before,
+        # to prevent drawing labels on top of label drawn image
+        if self.cv_image is not None:
+            self.cv_image = None
+
+        canvas_size = (self.canvas.winfo_width(), self.canvas.winfo_height())
+        
+        if file_dir != "":
+            self.chosen_img_label.config(text=f"Chosen Image: {file_dir}")
+
+            self.cv_image = cv2.imread(file_dir)
+            self.cv_image = cv2.resize(self.cv_image, canvas_size)
+                
+            # Written self.pil_image to prevent Garbage Collector from
+            # deleting function scope image
+            # Read "Displaying Image In Tkinter Python" article in C# 
+            # Corner website for more info, link in "Resources Used" 
+            # at the top
+            self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
+                    
+            self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw", 
+                                                            image=self.pil_image,
+                                                            tag="canvas_image")
+
+            # Load labels for the chosen image
+            self.load_labels()
+            self.draw_labels()
+        else:
+            self.chosen_img_label.config(text=f"Chosen Image: ")
+
     def resize_image(self, event):
         if self.cv_image is not None:
             new_width = event.width
@@ -1311,7 +1435,10 @@ class NeuralNetworkGUI():
             return
         '''
 
-        base_filename = os.path.splitext(self.chosen_image_name)[0]
+        # Using str.split instead of os.path.splitext hoping to solve
+        # RecursionError related to this line
+        # base_filename = os.path.splitext(self.chosen_image_name)[0]
+        base_filename = str.split(self.chosen_image_name, sep=".")[0]
 
         # Save in YOLO txt format
         self.save_txt(os.path.join(self.yolo_txt_folder, 
@@ -1519,7 +1646,7 @@ class NeuralNetworkGUI():
             # Broke the ternary operator used here to obey PEP8 maximum
             # line length (Sorry for that :( )
             if self.previous_frame_pred_labels:
-                max_id = max([label[0] for label in self.previous_frame_pred_labels[1]])
+                max_id = max([label[0] for label in self.previous_frame_pred_labels[1]], default=0)
             else:
                 max_id = 0
 
