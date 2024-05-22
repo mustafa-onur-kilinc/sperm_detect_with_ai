@@ -36,7 +36,7 @@ accessed 16 May 2024,
 <https://web.archive.org/web/20190515021108id_/http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html>
 
 John W. Shipman 2013, "54.6. Writing your handler: The Event class", 
-New Mexico Tech, accessed 16 May 2024,
+New Mexico Tech, accessed 22 May 2024,
 <https://web.archive.org/web/20190515013614id_/http://infohost.nmt.edu/tcc/help/pubs/tkinter/web/event-handlers.html>
 
 John W. Shipman 2013, "54. Events: responding to stimuli", 
@@ -52,6 +52,10 @@ Bernd Klein 2022, "9. Sliders in Tkinter", accessed 22 May 2024,
 
 John W. Shipman 2013, "21. The Scale widget", accessed 22 May 2024,
 <https://anzeljg.github.io/rin2/book2/2405/docs/tkinter/scale.html>
+
+unutbu 2013, "How to bind Ctrl+/ in python tkinter?", 
+Stack Exchange, Inc., accessed 22 May 2024, 
+<https://stackoverflow.com/a/16082411>
 """
 
 import os
@@ -153,6 +157,7 @@ class NeuralNetworkGUI():
         self.pred_labels_delete = []  # Holds a previous model's pred_labels
         self.pred_label_ids = []  # A list to easily check label_ids
         self.previous_frame_pred_labels = []
+        self.copied_label = []  # To hold a label copied by user
         self.images_list = []
 
         # Didn't use ternary operators to obey PEP8 maximum line length
@@ -357,48 +362,32 @@ class NeuralNetworkGUI():
         change_label_id_button.pack(fill="none", padx=0, pady=10, ipadx=10, 
                                     ipady=10, side="left", expand=True)
 
-        save_labels_button = tkinter.Button(options_frame, text="Save Labels", 
-                                           anchor="center", foreground="white",
-                                           background=self.success_color,
-                                           activebackground=self.active_color, 
+        copy_label_button = tkinter.Button(label_update_frame, 
+                                           text="Copy Label",
+                                           anchor="center", 
+                                           foreground="white",
+                                           background=self.primary_color,  
+                                           activebackground=self.active_color,
                                            borderwidth=0,
-                                           command=self.save_preds_to_disk)
-        save_labels_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
-                                ipady=10, side="left", expand=True)
-
-        close_button = tkinter.Button(options_frame, text="Close",
-                                      anchor="center", foreground="white",
-                                      background=self.danger_color,
-                                      activebackground=self.active_color,
-                                      borderwidth=0, command=self.close_window)
-        close_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10, 
-                          side="left", expand=True)
-
-        self.canvas = tkinter.Canvas(self.parent, background="gray25", borderwidth=0,
-                                 highlightbackground=self.highlight_bg_color, 
-                                 highlightthickness=2)
-        self.canvas.pack(fill="both", side="top", padx=10, pady=10, expand=True)
-
-        previous_img_button = tkinter.Button(left_arrow_frame, text="\u2190",
-                                             anchor="center",
-                                             foreground="white",
-                                             background="#4c9be8",
-                                             activebackground="#526170",
-                                             borderwidth=0, font=arial25,
-                                             command=self.open_previous_image)
-        previous_img_button.pack(fill="none", side="left", expand=True)
+                                           command=self.copy_label)
+        copy_label_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
+                               ipady=10, side="left", expand=True)
         
-        next_img_button = tkinter.Button(right_arrow_frame, text="\u2192",
-                                         anchor="center", 
-                                         foreground="white",
-                                         background="#4c9be8",
-                                         activebackground="#526170",
-                                         borderwidth=0, font=arial25,
-                                         command=self.open_next_image)
-        next_img_button.pack(fill="none", side="right", expand=True)
+        copy_label_button = tkinter.Button(label_update_frame, 
+                                           text="Paste Label",
+                                           anchor="center", 
+                                           foreground="white",
+                                           background=self.primary_color,  
+                                           activebackground=self.active_color,
+                                           borderwidth=0,
+                                           command=self.paste_label)
+        copy_label_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
+                               ipady=10, side="left", expand=True)
         
         self.parent.bind("<KeyPress-Right>", self.get_arrow_keys)
         self.parent.bind("<KeyPress-Left>", self.get_arrow_keys)
+        self.parent.bind("<Control-c>", self.get_keyboard_shortcut)
+        self.parent.bind("<Control-v>", self.get_keyboard_shortcut)
         
         self.canvas.bind("<Configure>", self.resize_image)
         self.canvas.bind("<B1-Motion>", self.get_dragging_coords)
@@ -939,6 +928,49 @@ class NeuralNetworkGUI():
         self.chosen_label_y = event.y
 
         self.update_labels()
+
+    def get_keyboard_shortcut(self, event):
+        if event.state & 0x0004 == 0x0004 and event.keycode == 67:
+            print("Control-C pressed")
+            self.copy_label()
+        elif event.state & 0x0004 == 0x0004 and event.keycode == 86:
+            print("Control-V pressed")
+            self.paste_label()
+
+    def copy_label(self):
+        click_x = self.chosen_label_x
+        click_y = self.chosen_label_y
+        
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+    
+        # Cleaning self.copied_label to ensure it only holds latest
+        # copied label
+        if self.copied_label != []:
+            self.copied_label = []
+    
+        if self.pred_labels != []:
+            for label in self.pred_labels[1]:
+                width = int(label[4] * canvas_width)
+                height = int(label[5] * canvas_height)
+                x0 = int(label[2] * canvas_width) - width // 2            
+                x1 = int(label[2] * canvas_width) + width // 2
+                y0 = int(label[3] * canvas_height) - height // 2
+                y1 = int(label[3] * canvas_height) + height // 2
+    
+                is_in_x = (click_x - x0) < width and (x1 - click_x) < width
+                is_in_y = (click_y - y0) < height and (y1 - click_y) < height
+    
+                if is_in_x and is_in_y:
+                    self.copied_label.append(label)
+    
+                    break
+
+    def paste_label(self):
+        if self.pred_labels != [] and self.pred_labels[1] != []:
+            self.pred_labels[1].append(self.copied_label[0])
+    
+            self.draw_labels()
 
     def save_labels(self):
         """
@@ -1609,7 +1641,6 @@ class NeuralNetworkGUI():
         
         if choice:
             self.parent.destroy()
-    
     
     def assign_ids(self, new_predictions: list):
         """
