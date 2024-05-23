@@ -69,7 +69,8 @@ import tkinter
 import tkinter.ttk
 
 from tkinter import filedialog, messagebox
-from tkinter import font 
+from tkinter import font
+from tkinter import colorchooser
 
 from PIL import Image, ImageTk
 from torchvision import transforms
@@ -123,6 +124,7 @@ class NeuralNetworkGUI():
         self.model_options = args_dict["model_options"]
         self.save_options = args_dict["save_options"]
         self.label_options = args_dict["label_options"]
+        self.label_colors = args_dict["label_colors"]
 
         # x_threshold and y_threshold are to prevent users from drawing
         # too small boxes
@@ -144,6 +146,7 @@ class NeuralNetworkGUI():
 
         self.label_id = tkinter.StringVar()
         self.frame_num = tkinter.IntVar()
+        self.new_label_cls = tkinter.StringVar()
 
         self.init_window()
 
@@ -318,6 +321,22 @@ class NeuralNetworkGUI():
                                           variable=self.frame_num,
                                           command=self.slide_image)
         self.frame_slider.pack(fill="none", side="top", expand=True)
+
+        add_label_cls_button = tkinter.Button(label_update_frame,
+                                              text="Add Label",
+                                              anchor="center", 
+                                              foreground="white",
+                                              background=self.primary_color,
+                                              activebackground=self.active_color,
+                                              borderwidth=0,
+                                              command=self.add_label_class)
+        add_label_cls_button.pack(fill="none", padx=0, pady=10, ipadx=10,
+                                  ipady=10, side="left", expand=True)
+        
+        add_label_cls_entry = tkinter.Entry(label_update_frame, bg="gray90",
+                                            textvariable=self.new_label_cls)
+        add_label_cls_entry.pack(fill="none", padx=20, pady=10, ipadx=10,
+                                  ipady=10, side="left", expand=True)
 
         change_label_button = tkinter.Button(label_update_frame, 
                                              text="Change Label",
@@ -930,14 +949,41 @@ class NeuralNetworkGUI():
         self.update_labels()
 
     def get_keyboard_shortcut(self, event):
+        """
+        Reads events from the widget it's binded to (self.parent), if
+        event is user pressing Control+C, calls self.copy_label() 
+        function; if event is user pressing Control+V, calls 
+        self.paste_label() function. Does nothing for other user inputs.
+
+        Parameters
+        ----------
+        event : tkinter event
+            The user event this function handles
+
+        Returns
+        ----------
+        None
+        """
+        
         if event.state & 0x0004 == 0x0004 and event.keycode == 67:
-            print("Control-C pressed")
             self.copy_label()
         elif event.state & 0x0004 == 0x0004 and event.keycode == 86:
-            print("Control-V pressed")
             self.paste_label()
 
     def copy_label(self):
+        """
+        Lets user choose and copy a label from a frame into 
+        self.copied_label
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ----------
+        None
+        """
+        
         click_x = self.chosen_label_x
         click_y = self.chosen_label_y
         
@@ -967,6 +1013,18 @@ class NeuralNetworkGUI():
                     break
 
     def paste_label(self):
+        """
+        Lets users paste a label from self.copied_label to a frame
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ----------
+        None
+        """
+
         if self.pred_labels != [] and self.pred_labels[1] != []:
             self.pred_labels[1].append(self.copied_label[0])
     
@@ -1044,6 +1102,36 @@ class NeuralNetworkGUI():
             self.chosen_label_y = y_middle
 
             self.x0 = self.y0 = self.x1 = self.y1 = None
+
+    def add_label_class(self):
+        if self.new_label_cls != "":
+            new_label_cls = self.new_label_cls.get()
+            print(new_label_cls)
+
+            # label_color = ((red, green, blue), '#hexcode')
+            label_color = colorchooser.askcolor(title="New Label's Color")
+            print(label_color)
+
+            # Prevents users from choosing an already chosen color by
+            # looping until user chooses a color that is not inside 
+            # self.label_colors
+            while label_color[1] in self.label_colors:
+                msg = "You have chosen a color which is already in use. "
+                msg += "Please choose a different color.\n"
+                msg += f"Current colors: {self.label_colors}"
+
+                messagebox.showerror(title="Color Is Already Used",
+                                     message=msg)
+                
+                label_color = colorchooser.askcolor(title="New Label's Color")
+                print(label_color)
+
+            self.label_options.append(new_label_cls)
+            self.label_colors.append(label_color[1])
+
+            self.new_label_cls.set("")
+
+            self.label_change_menu.config(values=self.label_options)
 
     def choose_predictor(self):
         """
@@ -1300,7 +1388,7 @@ class NeuralNetworkGUI():
                 text_location_x = x0 - self.text_distance_x
                 text_location_y = y0 - self.text_distance_y
 
-                rect_color = "#66BB6A" if pred_class == 0 else "blue"
+                rect_color = self.label_colors[pred_class]
     
                 self.canvas.create_rectangle(x0, y0, x1, y1,
                                              tags=f"rectangle_{counter}",
@@ -1361,17 +1449,21 @@ class NeuralNetworkGUI():
 
                 if is_in_x and is_in_y:
                     self.selected_box_label.config(text=f"Selected Box: {label[0]}")
-                    
-                    if self.label_change_menu.get() == "Sperm":
-                        label[1] = 0
+
+                    try:
+                        chosen_label = self.label_change_menu.get()
+                        label_index = self.label_options.index(chosen_label)
+
+                        # label_index - 1 because index gives values 
+                        # starting from 1 and would cause IndexError
+                        # otherwise
+                        label[1] = label_index - 1
 
                         self.label_id.set("")
                         self.label_change_menu.set(self.label_options[0])
-                    elif self.label_change_menu.get() == "Non-Sperm":
-                        label[1] = 1
-
-                        self.label_id.set("")
-                        self.label_change_menu.set(self.label_options[0])
+                    except ValueError as e:    
+                        messagebox.showerror(title="Error While Choosing Label",
+                                             message=f"Error: {e}")
                     
                     if self.label_id.get() != "":
                         i = 0
