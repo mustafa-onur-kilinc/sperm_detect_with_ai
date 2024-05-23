@@ -687,6 +687,8 @@ class NeuralNetworkGUI():
                 file_dir = os.path.join(self.folder_name,
                                         self.chosen_image_name)
 
+            self.frame_slider.set(file_index - i + 1)
+            
             if os.path.exists(self.images_list[file_index - i]):
                 self.chosen_image_name = self.images_list[file_index - i]
 
@@ -764,11 +766,12 @@ class NeuralNetworkGUI():
 
             while (i < len(self.images_list) - file_index and 
                     not os.path.exists(file_dir)):
-                print(f"i = {i}")
                 i += 1
                 self.chosen_image_name = self.images_list[file_index + i]
                 file_dir = os.path.join(self.folder_name,
                                         self.chosen_image_name)
+                
+            self.frame_slider.set(file_index + i + 1)
 
             if os.path.exists(self.images_list[file_index + i]):
                 self.chosen_image_name = self.images_list[file_index + i]
@@ -828,7 +831,7 @@ class NeuralNetworkGUI():
         # This if-else is to prevent IndexError 
         # when scale = len(self.images_list)
         if int(scale) < len(self.images_list):
-            self.chosen_image_name = self.images_list[int(scale)]
+            self.chosen_image_name = self.images_list[int(scale)-1]
         else:
             self.chosen_image_name = self.images_list[-1]
 
@@ -1597,7 +1600,6 @@ class NeuralNetworkGUI():
                             # otherwise
                             label[1] = label_index - 1
 
-                        self.label_id.set("")
                         self.label_change_menu.set(self.label_options[0])
                     except ValueError as e:    
                         messagebox.showerror(title="Error While Choosing Label",
