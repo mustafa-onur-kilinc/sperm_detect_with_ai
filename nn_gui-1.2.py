@@ -1236,80 +1236,39 @@ class NeuralNetworkGUI():
         None
         """
         
-        chosen_model = self.model_menu.get()
-
-        if (chosen_model not in self.model_options or 
-                chosen_model == self.model_options[0]):
-            msg = "Please make sure you have chosen a model!\n"
-            msg += "You can choose a model from the dropdown menu."
-
-            messagebox.showerror(title="Unknown Choice", message=msg)
-
-            return
-        
         filetypes_list = [["PyTorch Weights", "*.pth"], 
                             ["PyTorch Weights", "*.pt"]]
     
         weight_dir = filedialog.askopenfilename(filetypes=filetypes_list, 
                                             initialdir=self.script_dir, 
                                             title="Choose Weight File")
-    
-        if chosen_model == "yolov8s":
-            weight_name = os.path.split(weight_dir)[1]
+        
+        weight_name = os.path.split(weight_dir)[1]
 
-            # Turning weight_name to lowercase to make sure we don't
-            # miss yolo, YOLO, Yolo or other versions of 'yolo',
-            # best, BEST, Best or other versions of 'best' and
-            # last, LAST, Last or other versions of 'last'
-            if (weight_name.lower().find("yolo") == -1 
-                    and weight_name.find("best") == -1 
-                    and weight_name.find("last") == -1):
-                msg = "Please make sure you have chosen a weight suitable for "
-                msg += "YOLOv8!\n"
-                messagebox.showerror(title="Unknown Choice", message=msg)
-    
-                return
-            
+        # Turning weight_name to lowercase to make sure we don't
+        # miss variations of 'yolo', 'best', 'last', 'faster',
+        # 'rcnn', 'r-cnn', 'retina'
+        if (weight_name.lower().find("yolo") != -1 
+                or weight_name.lower().find("best") != -1 
+                or weight_name.lower().find("last") != -1):
             self.yolo_weights_dir = weight_dir
-            print(self.yolo_weights_dir)
-        elif chosen_model == "faster_rcnn":
-            weight_name = os.path.split(weight_dir)[1]
 
-            # Turning weight_name to lowercase to make sure we don't
-            # miss faster, FASTER, Faster or other versions of 'faster'
-            # and rcnn, RCNN, R-CNN, r-cnn or other versions of 'rcnn'
-            if (weight_name.lower().find("faster") == -1 
-                    and weight_name.lower().find("rcnn") == -1
-                    and weight_name.lower().find("r-cnn") == -1):
-                msg = "Please make sure you have chosen a weight suitable for "
-                msg += "Faster R-CNN!\n"
-                messagebox.showerror(title="Unknown Choice", message=msg)
-    
-                return
-            
+            self.model_menu.set("yolov8s")
+        elif (weight_name.lower().find("faster") != -1 
+                or weight_name.lower().find("rcnn") != -1
+                or weight_name.lower().find("r-cnn") != -1):
             self.faster_rcnn_weights_dir = weight_dir
-            print(self.faster_rcnn_weights_dir)
-        elif chosen_model == "retina_net":
-            weight_name = os.path.split(weight_dir)[1]
 
-            # Turning weight_name to lowercase to make sure we don't
-            # miss retina, RETINA, Retina or other versions of 'retina'
-            # Not looking for 'net' to prevent getting weights of
-            # Faster R-CNN with ResNet50 or MobileNet backbone
-            if (weight_name.lower().find("retina") == -1):
-                msg = "Please make sure you have chosen a weight suitable for "
-                msg += "RetinaNet!\n"
-                messagebox.showerror(title="Unknown Choice", message=msg)
-    
-                return
-            
+            self.model_menu.set("faster_rcnn")
+        elif weight_name.lower().find("retina") != -1:
             self.retinanet_weights_dir = weight_dir
-            print(self.retinanet_weights_dir)
-        else:
-            msg = "Please make sure you have chosen a model!\n"
-            msg += "You can choose a model from the dropdown menu."
 
-            messagebox.showerror(title="Unknown Choice", message=msg)
+            self.model_menu.set("retina_net")
+        else:
+            msg = "Please make sure you have chosen a suitable model!\n"
+            msg += "You can choose a model from the dropdown menu if you want."
+
+            messagebox.showerror(title="Unknown Choice", message=msg)            
 
     def predict_with_yolo(self):
         """
