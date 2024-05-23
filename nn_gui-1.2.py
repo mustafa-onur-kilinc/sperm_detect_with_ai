@@ -285,6 +285,28 @@ class NeuralNetworkGUI():
         choose_weight_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10, 
                              side="left", expand=True)
 
+        copy_label_button = tkinter.Button(options_frame, 
+                                           text="Copy Label",
+                                           anchor="center", 
+                                           foreground="white",
+                                           background=self.primary_color,  
+                                           activebackground=self.active_color,
+                                           borderwidth=0,
+                                           command=self.copy_label)
+        copy_label_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
+                               ipady=10, side="left", expand=True)
+        
+        copy_label_button = tkinter.Button(options_frame, 
+                                           text="Paste Label",
+                                           anchor="center", 
+                                           foreground="white",
+                                           background=self.primary_color,  
+                                           activebackground=self.active_color,
+                                           borderwidth=0,
+                                           command=self.paste_label)
+        copy_label_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
+                               ipady=10, side="left", expand=True)
+
         save_labels_button = tkinter.Button(options_frame, text="Save Labels", 
                                            anchor="center", foreground="white",
                                            background=self.success_color,
@@ -395,28 +417,6 @@ class NeuralNetworkGUI():
                                                 command=self.update_labels)
         change_label_id_button.pack(fill="none", padx=0, pady=10, ipadx=10, 
                                     ipady=10, side="left", expand=True)
-
-        copy_label_button = tkinter.Button(label_update_frame, 
-                                           text="Copy Label",
-                                           anchor="center", 
-                                           foreground="white",
-                                           background=self.primary_color,  
-                                           activebackground=self.active_color,
-                                           borderwidth=0,
-                                           command=self.copy_label)
-        copy_label_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
-                               ipady=10, side="left", expand=True)
-        
-        copy_label_button = tkinter.Button(label_update_frame, 
-                                           text="Paste Label",
-                                           anchor="center", 
-                                           foreground="white",
-                                           background=self.primary_color,  
-                                           activebackground=self.active_color,
-                                           borderwidth=0,
-                                           command=self.paste_label)
-        copy_label_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
-                               ipady=10, side="left", expand=True)
         
         self.parent.bind("<KeyPress-Right>", self.get_arrow_keys)
         self.parent.bind("<KeyPress-Left>", self.get_arrow_keys)
@@ -717,6 +717,9 @@ class NeuralNetworkGUI():
                 self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw",
                                                                 image=self.pil_image,
                                                                 tag="canvas_image")
+                
+                # To make clear chosen labels don't carry between frames
+                self.selected_box_label.config(text=f"Selected Box: ")
 
                 # Load labels for the chosen image
                 self.load_labels()
@@ -724,7 +727,6 @@ class NeuralNetworkGUI():
                 
             else:
                 self.chosen_img_label.config(text=f"Chosen Image: ")
-                self.canvas.r
                     
     def open_next_image(self):
         """
@@ -798,13 +800,15 @@ class NeuralNetworkGUI():
                 self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw",
                                                                 image=self.pil_image,
                                                                 tag="canvas_image")
+                
+                # To make clear chosen labels don't carry between frames
+                self.selected_box_label.config(text=f"Selected Box: ")
 
                 # Load labels for the chosen image
                 self.load_labels()
                 self.draw_labels()
             else:
                 self.chosen_img_label.config(text=f"Chosen Image: ")
-                self.canvas.r
 
     def slide_image(self, scale):
         """
@@ -1586,10 +1590,12 @@ class NeuralNetworkGUI():
                         chosen_label = self.label_change_menu.get()
                         label_index = self.label_options.index(chosen_label)
 
-                        # label_index - 1 because index gives values 
-                        # starting from 1 and would cause IndexError
-                        # otherwise
-                        label[1] = label_index - 1
+                        # self.label_options[0] = "--Label Type--"
+                        if label_index >= 1:
+                            # label_index - 1 because index gives values 
+                            # starting from 1 and would cause IndexError
+                            # otherwise
+                            label[1] = label_index - 1
 
                         self.label_id.set("")
                         self.label_change_menu.set(self.label_options[0])
