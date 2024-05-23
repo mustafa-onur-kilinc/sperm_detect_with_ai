@@ -50,7 +50,7 @@ Stack Exchange Inc., accessed 16 May 2024,
 Bernd Klein 2022, "9. Sliders in Tkinter", accessed 22 May 2024,
 <https://python-course.eu/tkinter/sliders-in-tkinter.php>
 
-John W. Shipman 2013, "21. The Scale widget", accessed 22 May 2024,
+John W. Shipman 2013, "21. The Scale widget", accessed 23 May 2024,
 <https://anzeljg.github.io/rin2/book2/2405/docs/tkinter/scale.html>
 
 unutbu 2013, "How to bind Ctrl+/ in python tkinter?", 
@@ -1064,8 +1064,15 @@ class NeuralNetworkGUI():
 
         if self.pred_labels != [] and self.pred_labels[1] != []:
             self.pred_labels[1].append(self.copied_label[0])
-    
-            self.draw_labels()
+        elif self.pred_labels != [] and self.pred_labels[1] == []:
+            # Assuming self.copied_label has a single label in it
+            self.pred_labels[1].append(self.copied_label[0])
+        else:
+            # Assuming self.copied_label has a single label in it
+            self.pred_labels.append(self.chosen_image_name)
+            self.pred_labels.append([self.copied_label[0]])
+            
+        self.draw_labels()
 
     def save_labels(self):
         """
