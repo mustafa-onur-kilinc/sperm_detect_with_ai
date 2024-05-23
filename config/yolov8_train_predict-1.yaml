@@ -1,8 +1,11 @@
 # True for training, False for prediction
 is_training: True
 
+# True for resuming training, False for new training
+resume_training: True
+
 # train parameters
-train_dataset_name: "Hamza_Hoca_Ekran_Dataset_YOLO"
+train_dataset_name: "dataset-split2"
 dataset_yaml_name: "dataset.yaml"
 custom_cfg_name: "custom_train_config.yaml"
 
@@ -20,12 +23,12 @@ test_video_name: "Vid0065"
 
 # weight parameters
 runs_dirname: ["runs", "detect"]
-train_folder_name: "train_yolov8s_30_epoch_ekran-2"
+train_folder_name: "train_yolov8s_30_epoch_telefon"
 weights_folder_name: "weights"
-self.yolo_weight: "yolov8s.pt"
+yolo_weight: "yolov8s.pt"
 
 # YOLO Predict function arguments
-self.imgsz: [1920, 1080]
-self.save: True
-self.stream: False
-self.line_width: 2
+imgsz: [1920, 1080]
+save: True
+stream: False
+line_width: 2

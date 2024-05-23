@@ -1,0 +1,8 @@
+epochs: 30
+patience: 40
+batch: 2
+imgsz:
+- 1920
+- 1080
+save: true
+rect: false

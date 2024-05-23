@@ -90,6 +90,7 @@ class YOLOTrainAndPredict():
             args_dict = yaml.safe_load(yaml_file)
 
         self.is_training = args_dict["is_training"]
+        self.resume_training = args_dict["resume_training"]
         
         train_dataset_name = args_dict["train_dataset_name"]
         dataset_yaml_name = args_dict["dataset_yaml_name"]
@@ -122,18 +123,17 @@ class YOLOTrainAndPredict():
         if is_test_dir_video:
             test_video_name = test_video_name + ".mp4"
 
-        script_dir = os.path.dirname(__file__)
-        train_dataset_dir = os.path.join(script_dir, train_dataset_name)
+        train_dataset_dir = os.path.join(main_dir, train_dataset_name)
         self.yaml_dir = os.path.join(train_dataset_dir, dataset_yaml_name)
         
-        test_dataset_dir = os.path.join(script_dir, test_dataset_name) 
+        test_dataset_dir = os.path.join(main_dir, test_dataset_name) 
         test_dir = os.path.join(test_dataset_dir, patient_name[0], 
                                 patient_name[1])
 
         # To predict videos with YOLO
         self.test_video_dir = os.path.join(test_dir, test_video_name)
 
-        self.runs_dir = os.path.join(script_dir, runs_dirname[0], 
+        self.runs_dir = os.path.join(main_dir, runs_dirname[0], 
                                      runs_dirname[1])
         self.train_dir = os.path.join(self.runs_dir, train_folder_name)
 
@@ -207,7 +207,7 @@ class YOLOTrainAndPredict():
         """
         
         if self.is_training:
-            self.yolo_train()
+            self.yolo_train(resume_training=self.resume_training)
         else:
             self.yolo_predict()
 
