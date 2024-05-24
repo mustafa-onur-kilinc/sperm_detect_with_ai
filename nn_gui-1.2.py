@@ -60,6 +60,14 @@ Stack Exchange, Inc., accessed 22 May 2024,
 newtocoding 2021, "Python – Tkinter Choose color Dialog", GeeksforGeeks, 
 accessed 23 May 2024, 
 <https://www.geeksforgeeks.org/python-tkinter-choose-color-dialog/>
+
+Dr. Jan-Philip Gehrcke 2012, "write() versus writelines() and 
+concatenated strings", Stack Exchange, Inc., accessed 24 May 2024, 
+<https://stackoverflow.com/a/12377575>
+
+Curt Hagenloger 2009, "Best method for reading newline delimited files 
+and discarding the newlines?", Stack Exchange, Inc., 
+accessed 24 May 2024, <https://stackoverflow.com/a/544932>
 """
 
 import os
