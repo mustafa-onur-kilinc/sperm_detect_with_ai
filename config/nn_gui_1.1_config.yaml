@@ -29,8 +29,8 @@ save_options:
 - json
 label_options:
 - "--Label Type--"
-- Sperm
-- Non-Sperm
+- "Sperm"
+- "Non-Sperm"
 label_colors:
 - "#66BB6A"  # Sperm label color
 - "blue"  # Non-Sperm label color

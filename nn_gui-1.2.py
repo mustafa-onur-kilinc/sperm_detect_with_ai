@@ -522,6 +522,39 @@ class NeuralNetworkGUI():
             os.makedirs(self.cornercoordinates_json_folder, exist_ok=True)
             os.makedirs(self.cornercoordinates_txt_folder, exist_ok=True)
 
+            self.label_options_txt_dir = os.path.join(self.labels_folder,
+                                                      'label_options.txt')
+            self.label_colors_txt_dir = os.path.join(self.labels_folder,
+                                                      'label_colors.txt')
+            
+            # Creating a txt file to hold initial label options in it 
+            # and update when user adds new labels
+            # If label_options.txt already exists, user has opened this
+            # folder before, and maybe added their own label classes
+            if not os.path.exists(self.label_options_txt_dir):
+                with open(self.label_options_txt_dir, "+w") as label_options_txt:
+                    label_options_txt.write("\n".join(self.label_options))
+            else:
+                # If label_options.txt already exists, load its content
+                # into self.label_options
+                with open(self.label_options_txt_dir) as label_options_txt:
+                    self.label_options = label_options_txt.read().splitlines()
+
+                self.label_change_menu.config(values=self.label_options)
+
+            # Creating a txt file to hold initial label options in it 
+            # and update when user adds new labels
+            # If label_colors.txt already exists, user has opened this
+            # folder before, and maybe added their own label colors
+            if not os.path.exists(self.label_colors_txt_dir):
+                with open(self.label_colors_txt_dir, "+w") as label_colors_txt:
+                    label_colors_txt.write("\n".join(self.label_colors))
+            else:
+                # If label_options.txt already exists, load its content
+                # into self.label_options
+                with open(self.label_colors_txt_dir) as label_colors_txt:
+                    self.label_colors = label_colors_txt.read().splitlines()
+
         else:
             self.labels_folder = ""
 
@@ -548,10 +581,12 @@ class NeuralNetworkGUI():
             self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw", 
                                                             image=self.pil_image,
                                                             tag="canvas_image")
-
+            
             # Load labels for the chosen image
             self.load_labels()
-            self.draw_labels()
+
+            if self.pred_labels != [] and self.pred_labels[1] != []:
+                self.draw_labels()
         else:
             self.chosen_img_label.config(text=f"Chosen Image: ")
             # self.canvas.r  # self.canvas.r ?
@@ -571,7 +606,7 @@ class NeuralNetworkGUI():
         ----------
         None
         """
-
+        
         base_filename = os.path.splitext(self.chosen_image_name)[0]
         yolo_json_path = os.path.join(self.yolo_json_folder, 
                                       f"{base_filename}.json")
@@ -670,7 +705,11 @@ class NeuralNetworkGUI():
                                 message=f"{val_error}")
 
         if file_index > 0:
-            self.save_preds_to_disk()  # Automatically save labels
+            # Calling self.save_preds_to_disk() when there are labels to
+            # save to decrease the amount of times this function
+            # gets called and hopefully solve RecursionError
+            if self.pred_labels != [] and self.pred_labels[1] != []:
+                self.save_preds_to_disk()  # Automatically save labels
 
             # Prediction can't be complete after changing the image
             self.pred_complete_label.config(text="")
@@ -688,7 +727,7 @@ class NeuralNetworkGUI():
                                         self.chosen_image_name)
 
             self.frame_slider.set(file_index - i + 1)
-            
+
             if os.path.exists(self.images_list[file_index - i]):
                 self.chosen_image_name = self.images_list[file_index - i]
 
@@ -725,7 +764,12 @@ class NeuralNetworkGUI():
 
                 # Load labels for the chosen image
                 self.load_labels()
-                self.draw_labels()
+                
+                # Calling self.draw_labels() when there are labels to
+                # draw to decrease the amount of times this function
+                # gets called and hopefully solve RecursionError
+                if self.pred_labels != [] and self.pred_labels[1] != []:
+                    self.draw_labels()
                 
             else:
                 self.chosen_img_label.config(text=f"Chosen Image: ")
@@ -756,7 +800,11 @@ class NeuralNetworkGUI():
                                 message=f"{val_error}")
 
         if file_index < len(self.images_list) - 1:
-            self.save_preds_to_disk()  # Automatically save labels
+            # Calling self.save_preds_to_disk() when there are labels to
+            # save to decrease the amount of times this function
+            # gets called and hopefully solve RecursionError
+            if self.pred_labels != [] and self.pred_labels[1] != []:
+                self.save_preds_to_disk()  # Automatically save labels
 
             self.pred_complete_label.config(text="")
 
@@ -809,7 +857,12 @@ class NeuralNetworkGUI():
 
                 # Load labels for the chosen image
                 self.load_labels()
-                self.draw_labels()
+
+                # Calling self.draw_labels() when there are labels to
+                # draw to decrease the amount of times this function
+                # gets called and hopefully solve RecursionError
+                if self.pred_labels != [] and self.pred_labels[1] != []:
+                    self.draw_labels()
             else:
                 self.chosen_img_label.config(text=f"Chosen Image: ")
 
@@ -834,6 +887,8 @@ class NeuralNetworkGUI():
             self.chosen_image_name = self.images_list[int(scale)-1]
         else:
             self.chosen_image_name = self.images_list[-1]
+
+        # self.save_preds_to_disk()
 
         file_dir = os.path.join(self.folder_name, self.chosen_image_name)
 
@@ -860,10 +915,15 @@ class NeuralNetworkGUI():
             self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw", 
                                                             image=self.pil_image,
                                                             tag="canvas_image")
-
-            # Load labels for the chosen image
-            self.load_labels()
-            self.draw_labels()
+            
+            # Calling self.load_labels() and self.draw_labels() when 
+            # there are labels to draw to decrease the amount of times 
+            # these functions get called and hopefully solve 
+            # RecursionError
+            if self.pred_labels != [] and self.pred_labels[1] != []:
+                # Load labels for the chosen image
+                self.load_labels()
+                self.draw_labels()
         else:
             self.chosen_img_label.config(text=f"Chosen Image: ")
 
@@ -1163,11 +1223,9 @@ class NeuralNetworkGUI():
         
         if self.new_label_cls != "":
             new_label_cls = self.new_label_cls.get()
-            print(new_label_cls)
 
             # label_color = ((red, green, blue), '#hexcode')
             label_color = colorchooser.askcolor(title="New Label's Color")
-            print(label_color)
 
             # Prevents users from choosing an already chosen color by
             # looping until user chooses a color that is not inside 
@@ -1185,6 +1243,12 @@ class NeuralNetworkGUI():
 
             self.label_options.append(new_label_cls)
             self.label_colors.append(label_color[1])
+
+            with open(self.label_options_txt_dir, '+a') as label_options_txt:
+                label_options_txt.write(f"\n{new_label_cls}")
+
+            with open(self.label_colors_txt_dir, '+a') as label_colors_txt:
+                label_colors_txt.write(f"\n{label_color[1]}")
 
             self.new_label_cls.set("")
 
@@ -1477,8 +1541,8 @@ class NeuralNetworkGUI():
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
         
-        if self.pred_labels != [] and \
-              self.chosen_image_name == self.pred_labels[0]:
+        if (self.pred_labels != [] and self.pred_labels[1] != [] and
+              self.chosen_image_name == self.pred_labels[0]):
             for pred_label in self.pred_labels[1]:
                 counter = pred_label[0]
                 pred_class = pred_label[1]
