@@ -924,13 +924,16 @@ class NeuralNetworkGUI():
                                                             image=self.pil_image,
                                                             tag="canvas_image")
             
+            # Load labels for the chosen image
+            self.load_labels()
+            
             # Calling self.load_labels() and self.draw_labels() when 
             # there are labels to draw to decrease the amount of times 
             # these functions get called and hopefully solve 
             # RecursionError
             if self.pred_labels != [] and self.pred_labels[1] != []:
-                # Load labels for the chosen image
-                self.load_labels()
+                # # Load labels for the chosen image
+                # self.load_labels()
                 self.draw_labels()
         else:
             self.chosen_img_label.config(text=f"Chosen Image: ")
