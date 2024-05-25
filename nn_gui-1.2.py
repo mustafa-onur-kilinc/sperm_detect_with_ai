@@ -68,6 +68,10 @@ concatenated strings", Stack Exchange, Inc., accessed 24 May 2024,
 Curt Hagenloger 2009, "Best method for reading newline delimited files 
 and discarding the newlines?", Stack Exchange, Inc., 
 accessed 24 May 2024, <https://stackoverflow.com/a/544932>
+
+Dev Prakash Sharma 2021, "How to clear Tkinter Canvas?", 
+Tutorials Point, accessed 25 May 2024,
+<https://www.tutorialspoint.com/how-to-clear-tkinter-canvas>
 """
 
 import os
@@ -92,6 +96,7 @@ from torchvision.models.detection import retinanet_resnet50_fpn_v2
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 from functools import partial
 from scipy.optimize import linear_sum_assignment
+from sperm_detection.tracker import Tracker
 
 from ultralytics import YOLO
 
@@ -167,6 +172,7 @@ class NeuralNetworkGUI():
         self.x0 = self.x1 = self.y0 = self.y1 = None
         self.chosen_label_x = self.chosen_label_y = None
         self.original_pred_labels_len = None
+        self.video_dir = ""
 
         self.pred_labels = []
         self.pred_labels_delete = []  # Holds a previous model's pred_labels
@@ -254,6 +260,16 @@ class NeuralNetworkGUI():
                                                  foreground=self.primary_color)
         self.pred_complete_label.pack(fill="none", side="top", expand=True)
 
+        choose_video_button = tkinter.Button(options_frame, text="Choose Video",
+                                             anchor="center", 
+                                             foreground="white",
+                                             background=self.primary_color,
+                                             activebackground=self.active_color,
+                                             borderwidth=0,
+                                             command=self.open_video)
+        choose_video_button.pack(fill="none", padx=10, pady=10, ipadx=10,
+                                 ipady=10, side="left", expand=True)
+
         choose_img_folder_button = tkinter.Button(options_frame, 
                                                   text="Choose Folder", 
                                                   anchor="center", 
@@ -323,6 +339,16 @@ class NeuralNetworkGUI():
                                            command=self.save_preds_to_disk)
         save_labels_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
                                 ipady=10, side="left", expand=True)
+
+        video_tracker_button = tkinter.Button(options_frame, 
+                                              text="Tracker in Video",
+                                              anchor="center", foreground="white",
+                                              background=self.primary_color,
+                                              activebackground=self.active_color,
+                                              borderwidth=0,
+                                              command=self.tracking_in_video)
+        video_tracker_button.pack(fill="none", padx=10, pady=10, ipadx=10,
+                                  ipady=10, side="left", expand=True)
 
         close_button = tkinter.Button(options_frame, text="Close",
                                       anchor="center", foreground="white",
@@ -437,10 +463,39 @@ class NeuralNetworkGUI():
         self.canvas.bind("<Button-1>", self.get_mouse_click_coords)
         self.canvas.bind("<Button-3>", self.delete_labels)
 
+    def open_video(self):
+        file_types = [["MP4 Files", "*.mp4"]]
+        self.video_dir = filedialog.askopenfilename(filetypes=file_types, 
+                                                     initialdir=self.script_dir)
+        
+        if self.video_dir != "":
+            self.chosen_img_label.config(text=f"Chosen Video: {self.video_dir}")
+
+            # Shows user canvas won't be used for video
+            self.canvas.delete("all")
+
+            # Shows user slider won't be used for video
+            self.frame_slider.config(state="disabled")
+
     def open_folder(self):
         """
-        Asks user to choose a file with Open function of OS, sends
-        chosen image to self.cv_image
+        Loads images of chosen folder, makes necessary label subfolders
+        and reads/writes necessary label options with their colors.
+
+        Asks user to choose a folder with Open function of OS, sorts its
+        content by images' numbers and loads the content list into 
+        self.images_list. 
+
+        If the chosen folder includes labels subfolder, asks user 
+        whether they want to use existing labels folder or overwrite it; 
+        if the chosen folder does not have labels subfolder, makes 
+        necessary folders. 
+
+        Writes content of self.label_options and self.label_colors lists 
+        to label_options.txt and label_colors.txt files if those files 
+        don't exist, writes the content of label_options.txt and 
+        label_colors.txt files into self.label_options and 
+        self.label_colors lists if those files exist.
 
         Parameters
         ----------
@@ -1265,37 +1320,61 @@ class NeuralNetworkGUI():
 
             self.label_change_menu.config(values=self.label_options)
 
-    def choose_predictor(self):
+    def choose_predictor(self, is_predicting_img=True):
         """
         Chooses a prediction method according to user's choice of the
         option menu
 
         Parameters
         ----------
-        None
+        is_predicting_img : bool, default=True
+            Defines the order of elements in new_predictions and whether
+            new_predictions will be sent to self.assign_ids or used in
+            video tracking. True means predicting image, False means 
+            predicting video
 
         Returns
         ----------
-        None
+        is_predictor_chosen : bool
+            Shows if user has managed to successfully choose a predict
+            function. If True, a predict function is successfully called;
+            if False, some user error has happened and no predict 
+            function is called
         """
 
-        if self.cv_image is None:
+        is_predictor_chosen = False
+
+        if is_predicting_img and self.cv_image is None:
             messagebox.showerror(message="No image chosen to predict.",
                                  title="No Image to Predict")
-            return
+            return is_predictor_chosen
+        elif not is_predicting_img and self.video_dir == "":
+            messagebox.showerror(message="No video chosen to track.",
+                                 title="No Video to Track")
+            return is_predictor_chosen
         
         chosen_model = self.model_menu.get()
         self.pred_labels = []
 
         if chosen_model == "yolov8s":
-            self.predict_with_yolo()
+            self.predict_with_yolo(is_predicting_img=is_predicting_img)
+            is_predictor_chosen = True
         elif chosen_model == "faster_rcnn":
-            self.predict_with_faster_rcnn()
+            self.predict_with_faster_rcnn(is_predicting_img=is_predicting_img)
+            is_predictor_chosen = True
         elif chosen_model == "retina_net":
-            self.predict_with_retina_net()
+            self.predict_with_retina_net(is_predicting_img=is_predicting_img)
+            is_predictor_chosen = True
         else:
-            messagebox.showerror(message="Unknown predictor!!!", 
+            if is_predicting_img:
+                messagebox.showerror(message="Unknown predictor!!!", 
                                  title="Unknown Choice")
+            else:
+                msg = "Please choose a model for prediction on video!\n"
+                msg += "Saved video will be broken if no model is chosen!"
+                messagebox.showerror(message=msg, title="No Model Chosen")
+
+        return is_predictor_chosen
 
     def choose_model_weight(self):
         """
@@ -1345,14 +1424,18 @@ class NeuralNetworkGUI():
 
             messagebox.showerror(title="Unknown Choice", message=msg)            
 
-    def predict_with_yolo(self):
+    def predict_with_yolo(self, is_predicting_img: bool):
         """
         Loads weight in self.yolo_weights_dir to YOLO, performs 
         prediction on self.cv_image 
 
         Parameters
         ----------
-        Nones
+        is_predicting_img : bool
+            Defines the order of elements in new_predictions and whether
+            new_predictions will be sent to self.assign_ids or used in
+            video tracking. True means predicting image, False means 
+            predicting video
 
         Returns
         ----------
@@ -1369,18 +1452,28 @@ class NeuralNetworkGUI():
 
         new_predictions = []
 
-        for result in results:
-            boxes_cls = result.boxes.cls.cpu().numpy()
-            boxes_xywhn = result.boxes.xywhn.cpu().numpy()
-
-            for (box_cls, box_xywhn) in zip(boxes_cls, boxes_xywhn):
-                new_predictions.append([int(box_cls), float(box_xywhn[0]), 
+        if is_predicting_img:
+            for result in results:
+                boxes_cls = result.boxes.cls.cpu().numpy()
+                boxes_xywhn = result.boxes.xywhn.cpu().numpy()
+    
+                for (box_cls, box_xywhn) in zip(boxes_cls, boxes_xywhn):
+                    new_predictions.append([int(box_cls), float(box_xywhn[0]), 
                                         float(box_xywhn[1]), float(box_xywhn[2]), 
                                         float(box_xywhn[3])])
+                    
+            self.assign_ids(new_predictions)
+        else:
+            for result in results:
+                boxes_cls = result.boxes.cls.cpu().numpy()
+                boxes_xywh = result.boxes.xywh.cpu().numpy()
 
-        self.assign_ids(new_predictions)
-
-    def predict_with_faster_rcnn(self, num_classes=3):
+                for (box_cls, box_xywh) in zip(boxes_cls, boxes_xywh):
+                    self.pred_labels.append([float(box_xywh[0]), 
+                                        float(box_xywh[1]), float(box_xywh[2]), 
+                                        float(box_xywh[3]), int(box_cls)])
+                    
+    def predict_with_faster_rcnn(self, is_predicting_img: bool, num_classes=3):
         """
         Loads weight in self.faster_rcnn_weights_dir to 
         fasterrcnn_resnet50_fpn_v2, performs prediction on PIL image
@@ -1390,6 +1483,12 @@ class NeuralNetworkGUI():
 
         Parameters
         ----------
+        is_predicting_img : bool
+            Defines the order of elements in new_predictions and whether
+            new_predictions will be sent to self.assign_ids or used in
+            video tracking. True means predicting image, False means 
+            predicting video
+
         num_classes : int, default=3
             Number of output classes (including background) for 
             FastRCNNPredictor
@@ -1439,18 +1538,24 @@ class NeuralNetworkGUI():
                     height = abs(y0 - y1)
                     x_middle = (x0 + x1) // 2
                     y_middle = (y0 + y1) // 2
-                    normalized_x_middle = x_middle / image_width
-                    normalized_y_middle = y_middle / image_height
-                    normalized_width = width / image_width
-                    normalized_height = height / image_height
 
-                    new_predictions.append([pred_class, normalized_x_middle, 
+                    if is_predicting_img:
+                        normalized_x_middle = x_middle / image_width
+                        normalized_y_middle = y_middle / image_height
+                        normalized_width = width / image_width
+                        normalized_height = height / image_height
+    
+                        new_predictions.append([pred_class, normalized_x_middle, 
                                             normalized_y_middle, 
                                             normalized_width, normalized_height])
+                    else:
+                        self.pred_labels.append([x_middle, y_middle, width,
+                                                 height, pred_class])
 
-        self.assign_ids(new_predictions)      
+        if is_predicting_img:
+            self.assign_ids(new_predictions) 
 
-    def predict_with_retina_net(self, num_classes=3):
+    def predict_with_retina_net(self, is_predicting_img: bool, num_classes=3):
         """
         Loads weight in self.retinanet_weights_dir to 
         retinanet_resnet50_fpn_v2, performs prediction on PIL image
@@ -1460,6 +1565,12 @@ class NeuralNetworkGUI():
 
         Parameters
         ----------
+        is_predicting_img : bool
+            Defines the order of elements in new_predictions and whether
+            new_predictions will be sent to self.assign_ids or used in
+            video tracking. True means predicting image, False means 
+            predicting video
+
         num_classes : int, default=3
             Number of output classes (including background) for 
             RetinaNetClassificationHead
@@ -1513,16 +1624,110 @@ class NeuralNetworkGUI():
                     height = abs(y0 - y1)
                     x_middle = (x0 + x1) // 2
                     y_middle = (y0 + y1) // 2
-                    normalized_x_middle = x_middle / image_width
-                    normalized_y_middle = y_middle / image_height
-                    normalized_width = width / image_width
-                    normalized_height = height / image_height
 
-                    new_predictions.append([pred_class, normalized_x_middle, 
+                    if is_predicting_img:
+                        normalized_x_middle = x_middle / image_width
+                        normalized_y_middle = y_middle / image_height
+                        normalized_width = width / image_width
+                        normalized_height = height / image_height
+    
+                        new_predictions.append([pred_class, normalized_x_middle, 
                                             normalized_y_middle, 
                                             normalized_width, normalized_height])
+                    else:
+                        self.pred_labels.append([x_middle, y_middle, width,
+                                                 height, pred_class])
 
-        self.assign_ids(new_predictions)
+        if is_predicting_img:
+            self.assign_ids(new_predictions)
+
+    def tracking_in_video(self):
+        tracker = Tracker()
+
+        video_folder, video_name = os.path.split(self.video_dir)
+        save_video_name = os.path.splitext(video_name)[0] + "_"
+        save_video_name += self.model_menu.get()
+        save_video_name += "_tracking" 
+        save_video_name += os.path.splitext(video_name)[1]
+        save_video_dir = os.path.join(video_folder, save_video_name)
+
+        cap = cv2.VideoCapture(self.video_dir)
+
+        # Apparently 'mp4v' is OpenCV's fallback tag for mp4 files
+        fourcc = cv2.VideoWriter.fourcc('m', 'p', '4', 'v')
+        out = cv2.VideoWriter(save_video_dir, fourcc=fourcc, fps=10,
+                              frameSize=(1920, 1080))
+
+        if not cap.isOpened():
+            print("Error while opening video")
+            return
+        
+        while cap.isOpened():
+            ret, frame = cap.read()
+
+            if not ret:
+                print("Error: Unable to fetch frame from video")
+                break
+
+            self.cv_image = frame
+
+            if not self.choose_predictor(is_predicting_img=False):
+                print("Error: Could not choose a predictor")
+                break
+
+            if self.pred_labels != []:
+                for pred_label in self.pred_labels:
+                    x_center = int(pred_label[0])
+                    y_center = int(pred_label[1])
+                    width = int(pred_label[2])
+                    height = int(pred_label[3])
+                    label_cls = int(pred_label[4])
+
+                    x_min = x_center - width // 2
+                    y_min = y_center - height // 2
+                    x_max = x_center + width // 2
+                    y_max = y_center + height // 2
+
+                    # Green for '0', Blue for '1'
+                    color = (0, 255, 0) if label_cls == 0 else (255, 0, 0)
+
+                    # Draw the rectangle (extra 3 pixels to prevent 
+                    # mixing with tracker bounding boxes)
+                    cv2.rectangle(frame, (x_min - 3, y_min - 3), 
+                                  (x_max + 3, y_max + 3), color, thickness=2)
+                    
+                # tracker_predictions = [id, x, y, width, height, label]
+                tracker_predictions = tracker.update(self.pred_labels)
+
+                if tracker_predictions:
+                    for pred in tracker_predictions:
+                        # Extract coordinates and dimensions
+                        x_center = int(pred[1])
+                        y_center = int(pred[2])
+                        width = int(pred[3])
+                        height = int(pred[4])
+                        label = int(pred[5])
+
+                        # Calculate rectangle coordinates
+                        x_min = x_center - width // 2
+                        y_min = y_center - height // 2
+                        x_max = x_center + width // 2
+                        y_max = y_center + height // 2
+        
+                        # Orange for '1', Red for '0' 
+                        color = (0, 0, 255) if label == 0 else (0, 165, 255)
+        
+                        # Draw the rectangle
+                        cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), 
+                                      color, thickness=2)
+
+                        # Put the tracker ID near the rectangle
+                        cv2.putText(frame, f"{pred[0]}", (x_min, y_min - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.6, 
+                                    color=(0, 0, 255), thickness=2)
+
+            out.write(frame)
+            print("Successfully written frame")
 
     def draw_labels(self):
         """
