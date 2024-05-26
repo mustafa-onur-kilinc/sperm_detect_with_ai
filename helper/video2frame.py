@@ -140,7 +140,7 @@ class VideoToFrame():
                 break
         
             frame_name = self.video_name.split(".")[0]
-            frame_name = frame_name + "_" + str(counter) + ".png"
+            frame_name = frame_name + "_" + str(counter) + ".jpg"
         
             isWritten = cv2.imwrite(frame_name, frame)
         
