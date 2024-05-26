@@ -173,6 +173,7 @@ class NeuralNetworkGUI():
         self.chosen_label_x = self.chosen_label_y = None
         self.original_pred_labels_len = None
         self.video_dir = ""
+        self.is_changed_since_save = False
 
         self.pred_labels = []
         self.pred_labels_delete = []  # Holds a previous model's pred_labels
@@ -907,11 +908,12 @@ class NeuralNetworkGUI():
                                 message=f"{val_error}")
 
         if file_index > 0:
-            # Calling self.save_preds_to_disk() when there are labels to
-            # save to decrease the amount of times this function
-            # gets called and hopefully solve RecursionError
-            if self.pred_labels != [] and self.pred_labels[1] != []:
-                self.save_preds_to_disk()  # Automatically save labels
+            # # Calling self.save_preds_to_disk() when there are labels to
+            # # save to decrease the amount of times this function
+            # # gets called and hopefully solve RecursionError
+            # if (self.pred_labels != [] and self.pred_labels[1] != [] and
+            #         self.is_changed_since_save):
+            #     self.save_preds_to_disk()  # Automatically save labels
 
             # Prediction can't be complete after changing the image
             self.pred_complete_label.config(text="")
@@ -930,51 +932,51 @@ class NeuralNetworkGUI():
 
             self.frame_slider.set(file_index - i + 1)
 
-            if os.path.exists(self.images_list[file_index - i]):
-                self.chosen_image_name = self.images_list[file_index - i]
+            # if os.path.exists(self.images_list[file_index - i]):
+            #     self.chosen_image_name = self.images_list[file_index - i]
 
-            file_dir = os.path.join(self.folder_name, self.chosen_image_name)
+            # file_dir = os.path.join(self.folder_name, self.chosen_image_name)
 
-            # Resetting self.cv_image if an image has been opened before,
-            # to prevent drawing labels on top of label drawn image
-            if self.cv_image is not None:
-                self.cv_image = None
+            # # Resetting self.cv_image if an image has been opened before,
+            # # to prevent drawing labels on top of label drawn image
+            # if self.cv_image is not None:
+            #     self.cv_image = None
 
-            canvas_size = (self.canvas.winfo_width(), 
-                           self.canvas.winfo_height())
+            # canvas_size = (self.canvas.winfo_width(), 
+            #                self.canvas.winfo_height())
 
-            if file_dir != "":
-                self.chosen_img_label.config(text=f"Chosen Image: {file_dir}")
-                self.chosen_image_name = os.path.split(file_dir)[1]
+            # if file_dir != "":
+            #     self.chosen_img_label.config(text=f"Chosen Image: {file_dir}")
+            #     self.chosen_image_name = os.path.split(file_dir)[1]
 
-                self.cv_image = cv2.imread(file_dir)
-                self.cv_image = cv2.resize(self.cv_image, canvas_size)
+            #     self.cv_image = cv2.imread(file_dir)
+            #     self.cv_image = cv2.resize(self.cv_image, canvas_size)
 
-                # Written self.pil_image to prevent Garbage Collector from
-                # deleting function scope image
-                # Read "Displaying Image In Tkinter Python" article in C# 
-                # Corner website for more info, link in "Resources Used" 
-                # at the top
-                self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
+            #     # Written self.pil_image to prevent Garbage Collector from
+            #     # deleting function scope image
+            #     # Read "Displaying Image In Tkinter Python" article in C# 
+            #     # Corner website for more info, link in "Resources Used" 
+            #     # at the top
+            #     self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
 
-                self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw",
-                                                                image=self.pil_image,
-                                                                tag="canvas_image")
+            #     self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw",
+            #                                                     image=self.pil_image,
+            #                                                     tag="canvas_image")
                 
-                # To make clear chosen labels don't carry between frames
-                self.selected_box_label.config(text=f"Selected Box: ")
+            #     # To make clear chosen labels don't carry between frames
+            #     self.selected_box_label.config(text=f"Selected Box: ")
 
-                # Load labels for the chosen image
-                self.load_labels()
+            #     # # Load labels for the chosen image
+            #     # self.load_labels()
                 
-                # Calling self.draw_labels() when there are labels to
-                # draw to decrease the amount of times this function
-                # gets called and hopefully solve RecursionError
-                if self.pred_labels != [] and self.pred_labels[1] != []:
-                    self.draw_labels()
+            #     # # Calling self.draw_labels() when there are labels to
+            #     # # draw to decrease the amount of times this function
+            #     # # gets called and hopefully solve RecursionError
+            #     # if self.pred_labels != [] and self.pred_labels[1] != []:
+            #     #     self.draw_labels()
                 
-            else:
-                self.chosen_img_label.config(text=f"Chosen Image: ")
+            # else:
+            #     self.chosen_img_label.config(text=f"Chosen Image: ")
                     
     def open_next_image(self):
         """
@@ -1002,11 +1004,12 @@ class NeuralNetworkGUI():
                                 message=f"{val_error}")
 
         if file_index < len(self.images_list) - 1:
-            # Calling self.save_preds_to_disk() when there are labels to
-            # save to decrease the amount of times this function
-            # gets called and hopefully solve RecursionError
-            if self.pred_labels != [] and self.pred_labels[1] != []:
-                self.save_preds_to_disk()  # Automatically save labels
+            # # Calling self.save_preds_to_disk() when there are labels to
+            # # save to decrease the amount of times this function
+            # # gets called and hopefully solve RecursionError
+            # if (self.pred_labels != [] and self.pred_labels[1] != [] and
+            #         self.is_changed_since_save):
+            #     self.save_preds_to_disk()  # Automatically save labels
 
             self.pred_complete_label.config(text="")
 
@@ -1023,50 +1026,50 @@ class NeuralNetworkGUI():
                 
             self.frame_slider.set(file_index + i + 1)
 
-            if os.path.exists(self.images_list[file_index + i]):
-                self.chosen_image_name = self.images_list[file_index + i]
+            # if os.path.exists(self.images_list[file_index + i]):
+            #     self.chosen_image_name = self.images_list[file_index + i]
 
-            file_dir = os.path.join(self.folder_name, self.chosen_image_name)
+            # file_dir = os.path.join(self.folder_name, self.chosen_image_name)
 
-            # Resetting self.cv_image if an image has been opened before,
-            # to prevent drawing labels on top of label drawn image
-            if self.cv_image is not None:
-                self.cv_image = None
+            # # Resetting self.cv_image if an image has been opened before,
+            # # to prevent drawing labels on top of label drawn image
+            # if self.cv_image is not None:
+            #     self.cv_image = None
 
-            canvas_size = (self.canvas.winfo_width(), 
-                           self.canvas.winfo_height())
+            # canvas_size = (self.canvas.winfo_width(), 
+            #                self.canvas.winfo_height())
 
-            if file_dir != "":
-                self.chosen_img_label.config(text=f"Chosen Image: {file_dir}")
-                self.chosen_image_name = os.path.split(file_dir)[1]
+            # if file_dir != "":
+            #     self.chosen_img_label.config(text=f"Chosen Image: {file_dir}")
+            #     self.chosen_image_name = os.path.split(file_dir)[1]
 
-                self.cv_image = cv2.imread(file_dir)
-                self.cv_image = cv2.resize(self.cv_image, canvas_size)
+            #     self.cv_image = cv2.imread(file_dir)
+            #     self.cv_image = cv2.resize(self.cv_image, canvas_size)
 
-                # Written self.pil_image to prevent Garbage Collector from
-                # deleting function scope image
-                # Read "Displaying Image In Tkinter Python" article in C# 
-                # Corner website for more info, link in "Resources Used" 
-                # at the top
-                self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
+            #     # Written self.pil_image to prevent Garbage Collector from
+            #     # deleting function scope image
+            #     # Read "Displaying Image In Tkinter Python" article in C# 
+            #     # Corner website for more info, link in "Resources Used" 
+            #     # at the top
+            #     self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
 
-                self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw",
-                                                                image=self.pil_image,
-                                                                tag="canvas_image")
+            #     self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw",
+            #                                                     image=self.pil_image,
+            #                                                     tag="canvas_image")
                 
-                # To make clear chosen labels don't carry between frames
-                self.selected_box_label.config(text=f"Selected Box: ")
+            #     # To make clear chosen labels don't carry between frames
+            #     self.selected_box_label.config(text=f"Selected Box: ")
 
-                # Load labels for the chosen image
-                self.load_labels()
+            #     # # Load labels for the chosen image
+            #     # self.load_labels()
 
-                # Calling self.draw_labels() when there are labels to
-                # draw to decrease the amount of times this function
-                # gets called and hopefully solve RecursionError
-                if self.pred_labels != [] and self.pred_labels[1] != []:
-                    self.draw_labels()
-            else:
-                self.chosen_img_label.config(text=f"Chosen Image: ")
+            #     # # Calling self.draw_labels() when there are labels to
+            #     # # draw to decrease the amount of times this function
+            #     # # gets called and hopefully solve RecursionError
+            #     # if self.pred_labels != [] and self.pred_labels[1] != []:
+            #     #     self.draw_labels()
+            # else:
+            #     self.chosen_img_label.config(text=f"Chosen Image: ")
 
     def slide_image(self, scale):
         """
@@ -1090,7 +1093,12 @@ class NeuralNetworkGUI():
         else:
             self.chosen_image_name = self.images_list[-1]
 
-        # self.save_preds_to_disk()
+        # Calling self.save_preds_to_disk() when there are labels to
+        # save to decrease the amount of times this function
+        # gets called and hopefully solve RecursionError
+        if (self.pred_labels != [] and self.pred_labels[1] != [] and
+                self.is_changed_since_save):
+            self.save_preds_to_disk()  # Automatically save labels
 
         file_dir = os.path.join(self.folder_name, self.chosen_image_name)
 
@@ -1126,8 +1134,8 @@ class NeuralNetworkGUI():
             # these functions get called and hopefully solve 
             # RecursionError
             if self.pred_labels != [] and self.pred_labels[1] != []:
-                # # Load labels for the chosen image
-                # self.load_labels()
+                # Load labels for the chosen image
+                self.load_labels()
                 self.draw_labels()
         else:
             self.chosen_img_label.config(text=f"Chosen Image: ")
@@ -1391,6 +1399,9 @@ class NeuralNetworkGUI():
                                         normalized_y_middle, 
                                         normalized_width, normalized_height])
                 self.pred_label_ids.append(counter)
+
+                # Making "made changes since last save" variable True
+                self.is_changed_since_save = True
         
             elif (self.pred_labels != [] and self.pred_labels[1] != [] and
                     width > self.x_threshold and height > self.y_threshold):
@@ -2154,6 +2165,9 @@ class NeuralNetworkGUI():
                          f"{base_filename}.json"), 
             is_saving_img_labels=is_saving_img_labels, is_yolo_format=False
         )
+
+        # Making "made changes since last save" variable False
+        self.is_changed_since_save = False
     
     def save_txt(self, path, is_saving_img_labels=True, is_yolo_format=False):
         """
