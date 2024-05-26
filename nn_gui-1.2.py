@@ -812,6 +812,9 @@ class NeuralNetworkGUI():
         base_filename = os.path.splitext(self.chosen_image_name)[0]
         yolo_json_path = os.path.join(self.yolo_json_folder, 
                                       f"{base_filename}.json")
+        
+        print(f"base_filename = {base_filename}")
+        print(f"yolo_json_path = {yolo_json_path}")
 
         self.pred_labels = []
 
@@ -855,7 +858,6 @@ class NeuralNetworkGUI():
         
         print("Current frame labels: ", self.pred_labels)
         print("Previous frame labels: ", self.previous_frame_pred_labels)
-        # print("====================================================")
         print("=" * 52)
             
     def get_arrow_keys(self, event):
@@ -964,8 +966,8 @@ class NeuralNetworkGUI():
                 # To make clear chosen labels don't carry between frames
                 self.selected_box_label.config(text=f"Selected Box: ")
 
-                # # Load labels for the chosen image
-                # self.load_labels()
+                # Load labels for the chosen image
+                self.load_labels()
                 
                 # Calling self.draw_labels() when there are labels to
                 # draw to decrease the amount of times this function
@@ -1090,11 +1092,13 @@ class NeuralNetworkGUI():
         else:
             self.chosen_image_name = self.images_list[-1]
 
-        # Calling self.save_preds_to_disk() when there are labels to
-        # save to decrease the amount of times this function
-        # gets called and hopefully solve RecursionError
-        if (self.pred_labels != [] and self.pred_labels[1] != []):
-            self.save_preds_to_disk()  # Automatically save labels
+        # self.save_preds_to_disk()  # Automatically save labels
+        
+        # # Calling self.save_preds_to_disk() when there are labels to
+        # # save to decrease the amount of times this function
+        # # gets called and hopefully solve RecursionError
+        # if (self.pred_labels != [] and self.pred_labels[1] != []):
+        #     self.save_preds_to_disk()  # Automatically save labels
 
         file_dir = os.path.join(self.folder_name, self.chosen_image_name)
 
@@ -1122,7 +1126,7 @@ class NeuralNetworkGUI():
                                                             image=self.pil_image,
                                                             tag="canvas_image")
             
-            # Load labels for the chosen image
+            # # Load labels for the chosen image
             self.load_labels()
             
             # Calling self.load_labels() and self.draw_labels() when 
@@ -1130,8 +1134,8 @@ class NeuralNetworkGUI():
             # these functions get called and hopefully solve 
             # RecursionError
             if self.pred_labels != [] and self.pred_labels[1] != []:
-                # Load labels for the chosen image
-                self.load_labels()
+                # # Load labels for the chosen image
+                # self.load_labels()
                 self.draw_labels()
         else:
             self.chosen_img_label.config(text=f"Chosen Image: ")
