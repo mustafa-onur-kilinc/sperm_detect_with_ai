@@ -21,7 +21,7 @@ accessed 13 May 2024,
 Israel Dryer n.d., "Definitions", accessed 14 May 2024,
 <https://ttkbootstrap.readthedocs.io/en/latest/themes/definitions/>
 
-Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 15 May 2024,
+Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 25 May 2024,
 <https://docs.ultralytics.com/modes/predict/#boxes>
 
 albert 2015, "List of All Tkinter Events", Stack Exchange Inc., 
@@ -364,23 +364,24 @@ class NeuralNetworkGUI():
                                      highlightthickness=2)
         self.canvas.pack(fill="both", side="top", padx=10, pady=10, expand=True)
 
-        previous_img_button = tkinter.Button(left_arrow_frame, text="\u2190",
-                                             anchor="center",
-                                             foreground="white",
-                                             background="#4c9be8",
-                                             activebackground="#526170",
-                                             borderwidth=0, font=arial25,
-                                             command=self.open_previous_image)
-        previous_img_button.pack(fill="none", side="left", expand=True)
+        self.previous_img_button = tkinter.Button(left_arrow_frame, 
+                                                  text="\u2190",
+                                                  anchor="center",
+                                                  foreground="white",
+                                                  background="#4c9be8",
+                                                  activebackground="#526170",
+                                                  borderwidth=0, font=arial25,
+                                                  command=self.open_previous_image)
+        self.previous_img_button.pack(fill="none", side="left", expand=True)
         
-        next_img_button = tkinter.Button(right_arrow_frame, text="\u2192",
-                                         anchor="center", 
-                                         foreground="white",
-                                         background="#4c9be8",
-                                         activebackground="#526170",
-                                         borderwidth=0, font=arial25,
-                                         command=self.open_next_image)
-        next_img_button.pack(fill="none", side="right", expand=True)
+        self.next_img_button = tkinter.Button(right_arrow_frame, text="\u2192",
+                                              anchor="center", 
+                                              foreground="white",
+                                              background="#4c9be8",
+                                              activebackground="#526170",
+                                              borderwidth=0, font=arial25,
+                                              command=self.open_next_image)
+        self.next_img_button.pack(fill="none", side="right", expand=True)
 
         self.frame_slider = tkinter.Scale(slider_frame, background="gray25",
                                           foreground="white", 
@@ -476,6 +477,9 @@ class NeuralNetworkGUI():
 
             # Shows user slider won't be used for video
             self.frame_slider.config(state="disabled")
+
+            self.previous_img_button.config(state="disabled")
+            self.next_img_button.config(state="disabled")
 
     def open_folder(self):
         """
@@ -654,7 +658,9 @@ class NeuralNetworkGUI():
             self.chosen_img_label.config(text=f"Chosen Image: ")
             # self.canvas.r  # self.canvas.r ?
 
-        self.frame_slider.config(state="normal", to=images_count)
+        self.frame_slider.config(state="normal", to=images_count)            
+        self.previous_img_button.config(state="normal")
+        self.next_img_button.config(state="normal")
 
     def load_labels(self):
         """
