@@ -2222,7 +2222,7 @@ class NeuralNetworkGUI():
                 pred_class = pred_label[5]
 
                 if is_yolo_format:
-                    labels_str += f"{pred_class} {x_middle} {y_middle}"
+                    labels_str += f"{pred_class} {x_middle} {y_middle} "
                     labels_str += f"{box_width} {box_height}\n"
                 else:
                     image_width = self.imgsz[0]
@@ -2239,7 +2239,7 @@ class NeuralNetworkGUI():
                     x_end = x_middle_px + box_width_px // 2
                     y_end = y_middle_px + box_height_px // 2
 
-                    labels_str += f"{pred_class} {x_start} {y_start}"
+                    labels_str += f"{pred_class} {x_start} {y_start} "
                     labels_str += f"{x_end} {y_end}\n"
 
         if path:
