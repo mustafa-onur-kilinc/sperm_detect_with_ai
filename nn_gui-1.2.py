@@ -465,12 +465,145 @@ class NeuralNetworkGUI():
         self.canvas.bind("<Button-3>", self.delete_labels)
 
     def open_video(self):
+        """
+        Loads chosen video, makes necessary frame folders, label 
+        subfolders and reads/writes necessary label options with their 
+        colors.
+
+        Firstly, this function asks user to choose a video with Open 
+        function of OS. 
+        
+        If the chosen folder includes labels subfolder, asks user 
+        whether they want to use existing labels folder or overwrite it; 
+        if the chosen folder does not have labels subfolder, makes 
+        necessary folders. 
+
+        Writes content of self.label_options and self.label_colors lists 
+        to label_options.txt and label_colors.txt files if those files 
+        don't exist, writes the content of label_options.txt and 
+        label_colors.txt files into self.label_options and 
+        self.label_colors lists if those files exist.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ----------
+        None 
+        """
+        
         file_types = [["MP4 Files", "*.mp4"]]
         self.video_dir = filedialog.askopenfilename(filetypes=file_types, 
                                                      initialdir=self.script_dir)
         
         if self.video_dir != "":
             self.chosen_img_label.config(text=f"Chosen Video: {self.video_dir}")
+
+            self.video_folder, self.video_name = os.path.split(self.video_dir)
+            save_frames_dirname = os.path.splitext(self.video_name)[0]
+            save_labels_dirname = save_frames_dirname + "_labels"
+            self.save_frames_dir = os.path.join(self.video_folder, 
+                                                save_frames_dirname)
+            self.labels_folder = os.path.join(self.video_folder, 
+                                              save_labels_dirname)
+
+            print(f"self.save_frames_dir = {self.save_frames_dir}")
+            print(f"self.labels_folder = {self.labels_folder}")
+ 
+            if not os.path.exists(self.save_frames_dir):
+                os.makedirs(self.save_frames_dir)
+
+            if not os.path.exists(self.labels_folder):
+                os.makedirs(self.labels_folder)
+            else:
+                # Made a string variable to obey 
+                # PEP8 maximum line length
+                msg = "The labels directory already exists. "
+                msg += "Do you want to use the existing directory or "
+                msg += "overwrite it?"
+                msg += "\n\nYes: Use existing\nNo: Overwrite\n"
+                msg += "Cancel: Cancel operation"
+
+                choice = messagebox.askyesnocancel(
+                    title="Directory Exists",
+                    message=msg
+                )
+
+                if choice is None:
+                    return
+                elif choice is False:
+                    # Overwrite the directory
+                    for file in os.listdir(self.labels_folder):
+                        file_path = os.path.join(self.labels_folder, file)
+                        try:
+                            if (os.path.isfile(file_path) or 
+                                    os.path.islink(file_path)):
+                                os.unlink(file_path)
+                            elif os.path.isdir(file_path):
+                                shutil.rmtree(file_path)
+                        except Exception as e:
+                            # Made a string variable to obey 
+                            # PEP8 maximum line length
+                            error_msg = f"Failed to delete {file_path}. "
+                            error_msg += f"Reason: {e}"
+
+                            messagebox.showerror(message=error_msg)
+                    print("Overwriting directory:", self.labels_folder)
+                else:
+                    print("Using existing directory:", self.labels_folder)
+
+            # Create subdirectories
+            self.yolo_json_folder = os.path.join(self.labels_folder, 
+                                                 'yolo_json')
+            self.yolo_txt_folder = os.path.join(self.labels_folder, 
+                                                'yolo_txt')
+            self.cornercoordinates_json_folder = os.path.join(
+                                                    self.labels_folder, 
+                                                    'cornercoordinates_json'
+                                                )
+            self.cornercoordinates_txt_folder = os.path.join(
+                                                    self.labels_folder, 
+                                                    'cornercoordinates_txt'
+                                                )
+
+            os.makedirs(self.yolo_json_folder, exist_ok=True)
+            os.makedirs(self.yolo_txt_folder, exist_ok=True)
+            os.makedirs(self.cornercoordinates_json_folder, exist_ok=True)
+            os.makedirs(self.cornercoordinates_txt_folder, exist_ok=True)
+
+            self.label_options_txt_dir = os.path.join(self.labels_folder,
+                                                      'label_options.txt')
+            self.label_colors_txt_dir = os.path.join(self.labels_folder,
+                                                      'label_colors.txt')
+            
+            # Creating a txt file to hold initial label options in it 
+            # and update when user adds new labels
+            # If label_options.txt already exists, user has opened this
+            # folder before, and maybe added their own label classes
+            if not os.path.exists(self.label_options_txt_dir):
+                with open(self.label_options_txt_dir, "+w") as label_options_txt:
+                    label_options_txt.write("\n".join(self.label_options))
+            else:
+                # If label_options.txt already exists, load its content
+                # into self.label_options
+                with open(self.label_options_txt_dir) as label_options_txt:
+                    self.label_options = label_options_txt.read().splitlines()
+
+                self.label_change_menu.config(values=self.label_options)
+
+            # Creating a txt file to hold initial label options in it 
+            # and update when user adds new labels
+            # If label_colors.txt already exists, user has opened this
+            # folder before, and maybe added their own label colors
+            if not os.path.exists(self.label_colors_txt_dir):
+                with open(self.label_colors_txt_dir, "+w") as label_colors_txt:
+                    label_colors_txt.write("\n".join(self.label_colors))
+            else:
+                # If label_options.txt already exists, load its content
+                # into self.label_options
+                with open(self.label_colors_txt_dir) as label_colors_txt:
+                    self.label_colors = label_colors_txt.read().splitlines()
 
             # Shows user canvas won't be used for video
             self.canvas.delete("all")
@@ -1025,8 +1158,8 @@ class NeuralNetworkGUI():
     
             self.canvas.itemconfig(self.image_on_canvas, 
                                    image=self.resized_photo_image)
-            if self.pred_labels != []:
 
+            if self.pred_labels != []:
                 for label in self.pred_labels[1]:
                     self.canvas.delete(f"rectangle_{label[0]}")
                     self.canvas.delete(f"text_{label[0]}")
@@ -1650,12 +1783,11 @@ class NeuralNetworkGUI():
     def tracking_in_video(self):
         tracker = Tracker()
 
-        video_folder, video_name = os.path.split(self.video_dir)
-        save_video_name = os.path.splitext(video_name)[0] + "_"
+        save_video_name = os.path.splitext(self.video_name)[0] + "_"
         save_video_name += self.model_menu.get()
         save_video_name += "_tracking" 
-        save_video_name += os.path.splitext(video_name)[1]
-        save_video_dir = os.path.join(video_folder, save_video_name)
+        save_video_name += os.path.splitext(self.video_name)[1]
+        save_video_dir = os.path.join(self.video_folder, save_video_name)
 
         cap = cv2.VideoCapture(self.video_dir)
 
@@ -1668,6 +1800,8 @@ class NeuralNetworkGUI():
             print("Error while opening video")
             return
         
+        self.video_frame_counter = 1
+        
         while cap.isOpened():
             ret, frame = cap.read()
 
@@ -1676,6 +1810,16 @@ class NeuralNetworkGUI():
                 break
 
             self.cv_image = frame
+            frame_height, frame_width = frame.shape[:2]
+
+            frame_name = os.path.splitext(self.video_name)[0]
+            frame_name += "_" + str(self.video_frame_counter) + ".jpg"
+            save_frame_dir = os.path.join(self.save_frames_dir, frame_name)
+
+            isWritten = cv2.imwrite(save_frame_dir, frame)
+        
+            if isWritten:
+                print(f"Written {frame_name} frame to {self.save_frames_dir}")
 
             if not self.choose_predictor(is_predicting_img=False):
                 print("Error: Could not choose a predictor")
@@ -1702,11 +1846,14 @@ class NeuralNetworkGUI():
                     cv2.rectangle(frame, (x_min - 3, y_min - 3), 
                                   (x_max + 3, y_max + 3), color, thickness=2)
                     
-                # tracker_predictions = [id, x, y, width, height, label]
-                tracker_predictions = tracker.update(self.pred_labels)
+                # Updating self.pred_labels to 
+                # [id, x, y, width, height, label] format
+                self.pred_labels = tracker.update(self.pred_labels)
 
-                if tracker_predictions:
-                    for pred in tracker_predictions:
+                if self.pred_labels:
+                    normalized_pred_labels = []
+
+                    for pred in self.pred_labels:
                         # Extract coordinates and dimensions
                         x_center = int(pred[1])
                         y_center = int(pred[2])
@@ -1731,9 +1878,31 @@ class NeuralNetworkGUI():
                         cv2.putText(frame, f"{pred[0]}", (x_min, y_min - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.6, 
                                     color=(0, 0, 255), thickness=2)
+                        
+                        # Normalize values of pred according to 
+                        # frame_width and frame_height
+                        normalized_x_center = x_center / frame_width
+                        normalized_y_center = y_center / frame_height
+                        normalized_width = width / frame_width
+                        normalized_height = height / frame_height
+
+                        normalized_pred_labels.append(
+                            (int(pred[0]), normalized_x_center, 
+                             normalized_y_center, normalized_width, 
+                             normalized_height, int(pred[5]))
+                        )
+
+                    self.pred_labels = normalized_pred_labels
+
+                    self.save_preds_to_disk(is_saving_img_labels=False)
 
             out.write(frame)
-            print("Successfully written frame")
+            
+            msg = f"Successfully written frame {self.video_frame_counter}"
+            msg += " to video"
+            print(msg)
+
+            self.video_frame_counter += 1
 
     def draw_labels(self):
         """
@@ -1927,13 +2096,16 @@ class NeuralNetworkGUI():
                     self.canvas.delete(f"text_{label[0]}")
                     break
 
-    def save_preds_to_disk(self):
+    def save_preds_to_disk(self, is_saving_img_labels=True):
         """
         Automatically saves labels in different formats and directories
 
         Parameters
         ----------
-        None
+        is_saving_img_labels : bool, default=True
+            Shows whether image labels or video labels are saved. It's
+            important because self.pred_labels have a different 
+            structure for image and video labels
 
         Returns
         ----------
@@ -1951,27 +2123,39 @@ class NeuralNetworkGUI():
             return
         '''
 
-        # Using str.split instead of os.path.splitext hoping to solve
-        # RecursionError related to this line
-        # base_filename = os.path.splitext(self.chosen_image_name)[0]
-        base_filename = str.split(self.chosen_image_name, sep=".")[0]
+        if is_saving_img_labels:
+            # Using str.split instead of os.path.splitext hoping to 
+            # solve RecursionError related to this line
+            # base_filename = os.path.splitext(self.chosen_image_name)[0]
+            base_filename = str.split(self.chosen_image_name, sep=".")[0]
+        else:
+            base_filename = str.split(self.video_name, sep=".")[0] 
+            base_filename += "_" + str(self.video_frame_counter)
 
         # Save in YOLO txt format
-        self.save_txt(os.path.join(self.yolo_txt_folder, 
-                                   f"{base_filename}.txt"), is_yolo_format=True)
+        self.save_txt(
+            os.path.join(self.yolo_txt_folder, f"{base_filename}.txt"), 
+            is_saving_img_labels=is_saving_img_labels, is_yolo_format=True
+        )
         # Save in corner coordinates txt format
-        self.save_txt(os.path.join(self.cornercoordinates_txt_folder, 
-                                   f"{base_filename}.txt"), is_yolo_format=False)
+        self.save_txt(
+            os.path.join(self.cornercoordinates_txt_folder, 
+                         f"{base_filename}.txt"), 
+            is_saving_img_labels=is_saving_img_labels, is_yolo_format=False
+        )
         # Save in YOLO json format
-        self.save_json(os.path.join(self.yolo_json_folder, 
-                                    f"{base_filename}.json"), 
-                        is_yolo_format=True)
+        self.save_json(
+            os.path.join(self.yolo_json_folder, f"{base_filename}.json"), 
+            is_saving_img_labels=is_saving_img_labels, is_yolo_format=True
+        )
         # Save in corner coordinates json format
-        self.save_json(os.path.join(self.cornercoordinates_json_folder, 
-                                    f"{base_filename}.json"), 
-                        is_yolo_format=False)
+        self.save_json(
+            os.path.join(self.cornercoordinates_json_folder, 
+                         f"{base_filename}.json"), 
+            is_saving_img_labels=is_saving_img_labels, is_yolo_format=False
+        )
     
-    def save_txt(self, path, is_yolo_format: bool = False):
+    def save_txt(self, path, is_saving_img_labels=True, is_yolo_format=False):
         """
         Saves labels in TXT format
 
@@ -1987,6 +2171,10 @@ class NeuralNetworkGUI():
         ----------
         path : str
             Path to save the txt file
+        is_saving_img_labels : bool, default=True
+            Shows whether image labels or video labels are saved. It's
+            important because self.pred_labels have a different 
+            structure for image and video labels            
         is_yolo_format : bool, default=False
             Shows whether TXT file should be saved in YOLO format or not
 
@@ -1997,13 +2185,41 @@ class NeuralNetworkGUI():
 
         labels_str = ""
 
-        if self.pred_labels != []:
+        if self.pred_labels != [] and is_saving_img_labels:
             for pred_label in self.pred_labels[1]:
                 pred_class = pred_label[1]
                 x_middle = pred_label[2]
                 y_middle = pred_label[3]
                 box_width = pred_label[4]
                 box_height = pred_label[5]
+
+                if is_yolo_format:
+                    labels_str += f"{pred_class} {x_middle} {y_middle}"
+                    labels_str += f"{box_width} {box_height}\n"
+                else:
+                    image_width = self.imgsz[0]
+                    image_height = self.imgsz[1]
+
+                    x_middle_px = int(x_middle * image_width)
+                    y_middle_px = int(y_middle * image_height)
+
+                    box_width_px = int(box_width * image_width)
+                    box_height_px = int(box_height * image_height)
+
+                    x_start = x_middle_px - box_width_px // 2
+                    y_start = y_middle_px - box_height_px // 2
+                    x_end = x_middle_px + box_width_px // 2
+                    y_end = y_middle_px + box_height_px // 2
+
+                    labels_str += f"{pred_class} {x_start} {y_start}"
+                    labels_str += f"{x_end} {y_end}\n"
+        elif self.pred_labels != [] and not is_saving_img_labels:
+            for pred_label in self.pred_labels:
+                x_middle = pred_label[1]
+                y_middle = pred_label[2]
+                box_width = pred_label[3]
+                box_height = pred_label[4]
+                pred_class = pred_label[5]
 
                 if is_yolo_format:
                     labels_str += f"{pred_class} {x_middle} {y_middle}"
@@ -2034,7 +2250,7 @@ class NeuralNetworkGUI():
                 messagebox.showerror(message=f"Error: {e}",
                                      title="Error While Saving TXT")
     
-    def save_json(self, path, is_yolo_format: bool = False):
+    def save_json(self, path, is_saving_img_labels=True, is_yolo_format=False):
         """
         Saves labels in JSON format
 
@@ -2042,6 +2258,10 @@ class NeuralNetworkGUI():
         ----------
         path : str
             Path to save the json file
+        is_saving_img_labels : bool, default=True
+            Shows whether image labels or video labels are saved. It's
+            important because self.pred_labels have a different 
+            structure for image and video labels
         is_yolo_format : bool, default=False
             Shows whether JSON file should be saved in YOLO format or not
 
@@ -2051,7 +2271,7 @@ class NeuralNetworkGUI():
         """
         
         labels_list = []
-        if self.pred_labels != []:
+        if self.pred_labels != [] and is_saving_img_labels:
             for pred_label in self.pred_labels[1]:
                 labels_dict = {}
 
@@ -2061,6 +2281,49 @@ class NeuralNetworkGUI():
                 y_middle = pred_label[3]
                 box_width = pred_label[4]
                 box_height = pred_label[5]
+
+                if is_yolo_format:
+                    labels_dict = {
+                        "id": counter,
+                        "class": pred_class,
+                        "x_middle": x_middle,
+                        "y_middle": y_middle,
+                        "width": box_width,
+                        "height": box_height
+                    }
+                else:
+                    image_width = self.imgsz[0]
+                    image_height = self.imgsz[1]
+
+                    x_middle_px = int(x_middle * image_width)
+                    y_middle_px = int(y_middle * image_height)
+
+                    box_width_px = int(box_width * image_width)
+                    box_height_px = int(box_height * image_height)
+
+                    x_start = x_middle_px - box_width_px // 2
+                    y_start = y_middle_px - box_height_px // 2
+                    x_end = x_middle_px + box_width_px // 2
+                    y_end = y_middle_px + box_height_px // 2
+
+                    labels_dict = {
+                        "id": counter,
+                        "class": pred_class,
+                        "x_start": x_start,
+                        "y_start": y_start,
+                        "x_end": x_end,
+                        "y_end": y_end
+                    }
+
+                labels_list.append(labels_dict)
+        elif self.pred_labels != [] and not is_saving_img_labels:
+            for pred_label in self.pred_labels:
+                counter = pred_label[0]
+                x_middle = pred_label[1]
+                y_middle = pred_label[2]
+                box_width = pred_label[3]
+                box_height = pred_label[4]
+                pred_class = pred_label[5]
 
                 if is_yolo_format:
                     labels_dict = {
