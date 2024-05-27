@@ -5,7 +5,7 @@ weight by using directory of dataset's train folder and test folder.
 In order to work, this script needs a directory like this:
 - main_dir
     - script_dir
-        - yolov8_predict.py
+        - yolov8_calc_mAP.py
     - config_dir
         - yaml_name
     - dataset_folder
