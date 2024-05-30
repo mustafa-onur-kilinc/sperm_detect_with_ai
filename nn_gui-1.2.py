@@ -21,7 +21,7 @@ accessed 13 May 2024,
 Israel Dryer n.d., "Definitions", accessed 14 May 2024,
 <https://ttkbootstrap.readthedocs.io/en/latest/themes/definitions/>
 
-Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 25 May 2024,
+Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 15 May 2024,
 <https://docs.ultralytics.com/modes/predict/#boxes>
 
 albert 2015, "List of All Tkinter Events", Stack Exchange Inc., 
@@ -68,11 +68,13 @@ concatenated strings", Stack Exchange, Inc., accessed 24 May 2024,
 Curt Hagenloger 2009, "Best method for reading newline delimited files 
 and discarding the newlines?", Stack Exchange, Inc., 
 accessed 24 May 2024, <https://stackoverflow.com/a/544932>
-
-Dev Prakash Sharma 2021, "How to clear Tkinter Canvas?", 
-Tutorials Point, accessed 25 May 2024,
-<https://www.tutorialspoint.com/how-to-clear-tkinter-canvas>
 """
+
+import sys
+from pathlib import Path
+
+root_dir = Path(__file__).parent.parent
+sys.path.append(str(root_dir))
 
 import os
 import cv2
@@ -84,6 +86,8 @@ import torch
 import tkinter
 import tkinter.ttk
 
+
+import threading
 from tkinter import filedialog, messagebox
 from tkinter import font
 from tkinter import colorchooser
@@ -96,10 +100,10 @@ from torchvision.models.detection import retinanet_resnet50_fpn_v2
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 from functools import partial
 from scipy.optimize import linear_sum_assignment
-from sperm_detection.tracker import Tracker
 
 from ultralytics import YOLO
 
+from tracker import Tracker
 
 class NeuralNetworkGUI():
     """
@@ -115,20 +119,14 @@ class NeuralNetworkGUI():
     def __init__(self):
         self.parent = tkinter.Tk()
 
-        config_dirname = "config"
-        yaml_name = "nn_gui_1.1_config.yaml"
+        config_dirname = "GUI/config"
+        yaml_name = "nn_gui_1.2_config.yaml"
         yaml_dir = os.path.join(config_dirname, yaml_name)
 
         with open(yaml_dir) as yaml_file:
             args_dict = yaml.safe_load(yaml_file)
 
-        weights_dirname = args_dict["weights_dirname"]
-        yolo_weight_dirname = args_dict["yolo_weight_dirname"]
-        faster_rcnn_weight_dirname = args_dict["faster_rcnn_weight_dirname"]
-        retina_net_weight_dirname = args_dict["retina_net_weight_dirname"]
-        yolo_weight_name = args_dict["yolo_weight_name"]
-        faster_rcnn_weight_name = args_dict["faster_rcnn_weight_name"]
-        retina_net_weight_name = args_dict["retina_net_weight_name"]
+
 
         self.imgsz = args_dict["imgsz"]
         self.show = args_dict["show"]
@@ -167,12 +165,12 @@ class NeuralNetworkGUI():
 
         self.init_window()
 
+        self.sort_tracking_enabled = False
         self.cv_image = None
         self.image_on_canvas = None
         self.x0 = self.x1 = self.y0 = self.y1 = None
         self.chosen_label_x = self.chosen_label_y = None
         self.original_pred_labels_len = None
-        self.video_dir = ""
 
         self.pred_labels = []
         self.pred_labels_delete = []  # Holds a previous model's pred_labels
@@ -198,15 +196,7 @@ class NeuralNetworkGUI():
         )
         
         self.script_dir = os.path.dirname(__file__)
-        self.weights_dir = os.path.join(self.script_dir, weights_dirname)
-        self.yolo_weights_dir = os.path.join(self.weights_dir, yolo_weight_dirname,
-                                             yolo_weight_name)
-        self.faster_rcnn_weights_dir = os.path.join(self.weights_dir,
-                                                    faster_rcnn_weight_dirname,
-                                                    faster_rcnn_weight_name)
-        self.retinanet_weights_dir = os.path.join(self.weights_dir, 
-                                                  retina_net_weight_dirname,
-                                                  retina_net_weight_name)
+
 
     def init_window(self):
         """
@@ -260,16 +250,6 @@ class NeuralNetworkGUI():
                                                  foreground=self.primary_color)
         self.pred_complete_label.pack(fill="none", side="top", expand=True)
 
-        choose_video_button = tkinter.Button(options_frame, text="Choose Video",
-                                             anchor="center", 
-                                             foreground="white",
-                                             background=self.primary_color,
-                                             activebackground=self.active_color,
-                                             borderwidth=0,
-                                             command=self.open_video)
-        choose_video_button.pack(fill="none", padx=10, pady=10, ipadx=10,
-                                 ipady=10, side="left", expand=True)
-
         choose_img_folder_button = tkinter.Button(options_frame, 
                                                   text="Choose Folder", 
                                                   anchor="center", 
@@ -280,6 +260,16 @@ class NeuralNetworkGUI():
                                                   command=self.open_folder)
         choose_img_folder_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
                                ipady=10, side="left", expand=True)
+
+        track_images_button = tkinter.Button(options_frame, text="Track Images",
+                                     anchor="center", 
+                                     foreground="white",
+                                     background=self.primary_color,
+                                     activebackground=self.active_color,
+                                     borderwidth=0,
+                                     command=self.apply_tracking)
+        track_images_button.pack(fill="none", padx=10, pady=10, ipadx=10,
+                                ipady=10, side="left", expand=True)
 
         pred_img_button = tkinter.Button(options_frame, text="Predict Image",
                                          anchor="center", foreground="white",
@@ -309,6 +299,7 @@ class NeuralNetworkGUI():
         choose_weight_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10, 
                              side="left", expand=True)
 
+        '''
         copy_label_button = tkinter.Button(options_frame, 
                                            text="Copy Label",
                                            anchor="center", 
@@ -330,7 +321,7 @@ class NeuralNetworkGUI():
                                            command=self.paste_label)
         copy_label_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
                                ipady=10, side="left", expand=True)
-
+        '''
         save_labels_button = tkinter.Button(options_frame, text="Save Labels", 
                                            anchor="center", foreground="white",
                                            background=self.success_color,
@@ -339,16 +330,6 @@ class NeuralNetworkGUI():
                                            command=self.save_preds_to_disk)
         save_labels_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
                                 ipady=10, side="left", expand=True)
-
-        video_tracker_button = tkinter.Button(options_frame, 
-                                              text="Tracker in Video",
-                                              anchor="center", foreground="white",
-                                              background=self.primary_color,
-                                              activebackground=self.active_color,
-                                              borderwidth=0,
-                                              command=self.tracking_in_video)
-        video_tracker_button.pack(fill="none", padx=10, pady=10, ipadx=10,
-                                  ipady=10, side="left", expand=True)
 
         close_button = tkinter.Button(options_frame, text="Close",
                                       anchor="center", foreground="white",
@@ -364,24 +345,23 @@ class NeuralNetworkGUI():
                                      highlightthickness=2)
         self.canvas.pack(fill="both", side="top", padx=10, pady=10, expand=True)
 
-        self.previous_img_button = tkinter.Button(left_arrow_frame, 
-                                                  text="\u2190",
-                                                  anchor="center",
-                                                  foreground="white",
-                                                  background="#4c9be8",
-                                                  activebackground="#526170",
-                                                  borderwidth=0, font=arial25,
-                                                  command=self.open_previous_image)
-        self.previous_img_button.pack(fill="none", side="left", expand=True)
+        previous_img_button = tkinter.Button(left_arrow_frame, text="\u2190",
+                                             anchor="center",
+                                             foreground="white",
+                                             background="#4c9be8",
+                                             activebackground="#526170",
+                                             borderwidth=0, font=arial25,
+                                             command=self.open_previous_image)
+        previous_img_button.pack(fill="none", side="left", expand=True)
         
-        self.next_img_button = tkinter.Button(right_arrow_frame, text="\u2192",
-                                              anchor="center", 
-                                              foreground="white",
-                                              background="#4c9be8",
-                                              activebackground="#526170",
-                                              borderwidth=0, font=arial25,
-                                              command=self.open_next_image)
-        self.next_img_button.pack(fill="none", side="right", expand=True)
+        next_img_button = tkinter.Button(right_arrow_frame, text="\u2192",
+                                         anchor="center", 
+                                         foreground="white",
+                                         background="#4c9be8",
+                                         activebackground="#526170",
+                                         borderwidth=0, font=arial25,
+                                         command=self.open_next_image)
+        next_img_button.pack(fill="none", side="right", expand=True)
 
         self.frame_slider = tkinter.Scale(slider_frame, background="gray25",
                                           foreground="white", 
@@ -464,175 +444,10 @@ class NeuralNetworkGUI():
         self.canvas.bind("<Button-1>", self.get_mouse_click_coords)
         self.canvas.bind("<Button-3>", self.delete_labels)
 
-    def open_video(self):
-        """
-        Loads chosen video, makes necessary frame folders, label 
-        subfolders and reads/writes necessary label options with their 
-        colors.
-
-        Firstly, this function asks user to choose a video with Open 
-        function of OS. 
-        
-        If the chosen folder includes labels subfolder, asks user 
-        whether they want to use existing labels folder or overwrite it; 
-        if the chosen folder does not have labels subfolder, makes 
-        necessary folders. 
-
-        Writes content of self.label_options and self.label_colors lists 
-        to label_options.txt and label_colors.txt files if those files 
-        don't exist, writes the content of label_options.txt and 
-        label_colors.txt files into self.label_options and 
-        self.label_colors lists if those files exist.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        ----------
-        None 
-        """
-        
-        file_types = [["MP4 Files", "*.mp4"]]
-        self.video_dir = filedialog.askopenfilename(filetypes=file_types, 
-                                                     initialdir=self.script_dir)
-        
-        if self.video_dir != "":
-            self.chosen_img_label.config(text=f"Chosen Video: {self.video_dir}")
-
-            self.video_folder, self.video_name = os.path.split(self.video_dir)
-            save_frames_dirname = os.path.splitext(self.video_name)[0]
-            save_labels_dirname = save_frames_dirname + "_labels"
-            self.save_frames_dir = os.path.join(self.video_folder, 
-                                                save_frames_dirname)
-            self.labels_folder = os.path.join(self.video_folder, 
-                                              save_labels_dirname)
-
-            print(f"self.save_frames_dir = {self.save_frames_dir}")
-            print(f"self.labels_folder = {self.labels_folder}")
- 
-            if not os.path.exists(self.save_frames_dir):
-                os.makedirs(self.save_frames_dir)
-
-            if not os.path.exists(self.labels_folder):
-                os.makedirs(self.labels_folder)
-            else:
-                # Made a string variable to obey 
-                # PEP8 maximum line length
-                msg = "The labels directory already exists. "
-                msg += "Do you want to use the existing directory or "
-                msg += "overwrite it?"
-                msg += "\n\nYes: Use existing\nNo: Overwrite\n"
-                msg += "Cancel: Cancel operation"
-
-                choice = messagebox.askyesnocancel(
-                    title="Directory Exists",
-                    message=msg
-                )
-
-                if choice is None:
-                    return
-                elif choice is False:
-                    # Overwrite the directory
-                    for file in os.listdir(self.labels_folder):
-                        file_path = os.path.join(self.labels_folder, file)
-                        try:
-                            if (os.path.isfile(file_path) or 
-                                    os.path.islink(file_path)):
-                                os.unlink(file_path)
-                            elif os.path.isdir(file_path):
-                                shutil.rmtree(file_path)
-                        except Exception as e:
-                            # Made a string variable to obey 
-                            # PEP8 maximum line length
-                            error_msg = f"Failed to delete {file_path}. "
-                            error_msg += f"Reason: {e}"
-
-                            messagebox.showerror(message=error_msg)
-                    print("Overwriting directory:", self.labels_folder)
-                else:
-                    print("Using existing directory:", self.labels_folder)
-
-            # Create subdirectories
-            self.yolo_json_folder = os.path.join(self.labels_folder, 
-                                                 'yolo_json')
-            self.yolo_txt_folder = os.path.join(self.labels_folder, 
-                                                'yolo_txt')
-            self.cornercoordinates_json_folder = os.path.join(
-                                                    self.labels_folder, 
-                                                    'cornercoordinates_json'
-                                                )
-            self.cornercoordinates_txt_folder = os.path.join(
-                                                    self.labels_folder, 
-                                                    'cornercoordinates_txt'
-                                                )
-
-            os.makedirs(self.yolo_json_folder, exist_ok=True)
-            os.makedirs(self.yolo_txt_folder, exist_ok=True)
-            os.makedirs(self.cornercoordinates_json_folder, exist_ok=True)
-            os.makedirs(self.cornercoordinates_txt_folder, exist_ok=True)
-
-            self.label_options_txt_dir = os.path.join(self.labels_folder,
-                                                      'label_options.txt')
-            self.label_colors_txt_dir = os.path.join(self.labels_folder,
-                                                      'label_colors.txt')
-            
-            # Creating a txt file to hold initial label options in it 
-            # and update when user adds new labels
-            # If label_options.txt already exists, user has opened this
-            # folder before, and maybe added their own label classes
-            if not os.path.exists(self.label_options_txt_dir):
-                with open(self.label_options_txt_dir, "+w") as label_options_txt:
-                    label_options_txt.write("\n".join(self.label_options))
-            else:
-                # If label_options.txt already exists, load its content
-                # into self.label_options
-                with open(self.label_options_txt_dir) as label_options_txt:
-                    self.label_options = label_options_txt.read().splitlines()
-
-                self.label_change_menu.config(values=self.label_options)
-
-            # Creating a txt file to hold initial label options in it 
-            # and update when user adds new labels
-            # If label_colors.txt already exists, user has opened this
-            # folder before, and maybe added their own label colors
-            if not os.path.exists(self.label_colors_txt_dir):
-                with open(self.label_colors_txt_dir, "+w") as label_colors_txt:
-                    label_colors_txt.write("\n".join(self.label_colors))
-            else:
-                # If label_options.txt already exists, load its content
-                # into self.label_options
-                with open(self.label_colors_txt_dir) as label_colors_txt:
-                    self.label_colors = label_colors_txt.read().splitlines()
-
-            # Shows user canvas won't be used for video
-            self.canvas.delete("all")
-
-            # Shows user slider won't be used for video
-            self.frame_slider.config(state="disabled")
-
-            self.previous_img_button.config(state="disabled")
-            self.next_img_button.config(state="disabled")
-
     def open_folder(self):
         """
-        Loads images of chosen folder, makes necessary label subfolders
-        and reads/writes necessary label options with their colors.
-
-        Asks user to choose a folder with Open function of OS, sorts its
-        content by images' numbers and loads the content list into 
-        self.images_list. 
-
-        If the chosen folder includes labels subfolder, asks user 
-        whether they want to use existing labels folder or overwrite it; 
-        if the chosen folder does not have labels subfolder, makes 
-        necessary folders. 
-
-        Writes content of self.label_options and self.label_colors lists 
-        to label_options.txt and label_colors.txt files if those files 
-        don't exist, writes the content of label_options.txt and 
-        label_colors.txt files into self.label_options and 
-        self.label_colors lists if those files exist.
+        Asks user to choose a file with Open function of OS, sends
+        chosen image to self.cv_image
 
         Parameters
         ----------
@@ -769,14 +584,14 @@ class NeuralNetworkGUI():
             self.chosen_img_label.config(text=f"Chosen Image: {file_dir}")
 
             self.cv_image = cv2.imread(file_dir)
-            self.cv_image = cv2.resize(self.cv_image, canvas_size)
+            resized_cv_image = cv2.resize(self.cv_image, canvas_size)
                 
             # Written self.pil_image to prevent Garbage Collector from
             # deleting function scope image
             # Read "Displaying Image In Tkinter Python" article in C# 
             # Corner website for more info, link in "Resources Used" 
             # at the top
-            self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
+            self.pil_image = ImageTk.PhotoImage(Image.fromarray(resized_cv_image))
                     
             self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw", 
                                                             image=self.pil_image,
@@ -791,9 +606,7 @@ class NeuralNetworkGUI():
             self.chosen_img_label.config(text=f"Chosen Image: ")
             # self.canvas.r  # self.canvas.r ?
 
-        self.frame_slider.config(state="normal", to=images_count)            
-        self.previous_img_button.config(state="normal")
-        self.next_img_button.config(state="normal")
+        self.frame_slider.config(state="normal", to=images_count)
 
     def load_labels(self):
         """
@@ -812,9 +625,6 @@ class NeuralNetworkGUI():
         base_filename = os.path.splitext(self.chosen_image_name)[0]
         yolo_json_path = os.path.join(self.yolo_json_folder, 
                                       f"{base_filename}.json")
-        
-        print(f"base_filename = {base_filename}")
-        print(f"yolo_json_path = {yolo_json_path}")
 
         self.pred_labels = []
 
@@ -858,6 +668,7 @@ class NeuralNetworkGUI():
         
         print("Current frame labels: ", self.pred_labels)
         print("Previous frame labels: ", self.previous_frame_pred_labels)
+        # print("====================================================")
         print("=" * 52)
             
     def get_arrow_keys(self, event):
@@ -912,7 +723,7 @@ class NeuralNetworkGUI():
             # Calling self.save_preds_to_disk() when there are labels to
             # save to decrease the amount of times this function
             # gets called and hopefully solve RecursionError
-            if (self.pred_labels != [] and self.pred_labels[1] != []):
+            if self.pred_labels != [] and self.pred_labels[1] != []:
                 self.save_preds_to_disk()  # Automatically save labels
 
             # Prediction can't be complete after changing the image
@@ -950,14 +761,14 @@ class NeuralNetworkGUI():
                 self.chosen_image_name = os.path.split(file_dir)[1]
 
                 self.cv_image = cv2.imread(file_dir)
-                self.cv_image = cv2.resize(self.cv_image, canvas_size)
+                resized_cv_image = cv2.resize(self.cv_image, canvas_size)
 
                 # Written self.pil_image to prevent Garbage Collector from
                 # deleting function scope image
                 # Read "Displaying Image In Tkinter Python" article in C# 
                 # Corner website for more info, link in "Resources Used" 
                 # at the top
-                self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
+                self.pil_image = ImageTk.PhotoImage(Image.fromarray(resized_cv_image))
 
                 self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw",
                                                                 image=self.pil_image,
@@ -1007,7 +818,7 @@ class NeuralNetworkGUI():
             # Calling self.save_preds_to_disk() when there are labels to
             # save to decrease the amount of times this function
             # gets called and hopefully solve RecursionError
-            if (self.pred_labels != [] and self.pred_labels[1] != []):
+            if self.pred_labels != [] and self.pred_labels[1] != []:
                 self.save_preds_to_disk()  # Automatically save labels
 
             self.pred_complete_label.config(text="")
@@ -1043,14 +854,14 @@ class NeuralNetworkGUI():
                 self.chosen_image_name = os.path.split(file_dir)[1]
 
                 self.cv_image = cv2.imread(file_dir)
-                self.cv_image = cv2.resize(self.cv_image, canvas_size)
+                resized_cv_image = cv2.resize(self.cv_image, canvas_size)
 
                 # Written self.pil_image to prevent Garbage Collector from
                 # deleting function scope image
                 # Read "Displaying Image In Tkinter Python" article in C# 
                 # Corner website for more info, link in "Resources Used" 
                 # at the top
-                self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
+                self.pil_image = ImageTk.PhotoImage(Image.fromarray(resized_cv_image))
 
                 self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw",
                                                                 image=self.pil_image,
@@ -1092,13 +903,7 @@ class NeuralNetworkGUI():
         else:
             self.chosen_image_name = self.images_list[-1]
 
-        # self.save_preds_to_disk()  # Automatically save labels
-        
-        # # Calling self.save_preds_to_disk() when there are labels to
-        # # save to decrease the amount of times this function
-        # # gets called and hopefully solve RecursionError
-        # if (self.pred_labels != [] and self.pred_labels[1] != []):
-        #     self.save_preds_to_disk()  # Automatically save labels
+        # self.save_preds_to_disk()
 
         file_dir = os.path.join(self.folder_name, self.chosen_image_name)
 
@@ -1113,29 +918,27 @@ class NeuralNetworkGUI():
             self.chosen_img_label.config(text=f"Chosen Image: {file_dir}")
 
             self.cv_image = cv2.imread(file_dir)
-            self.cv_image = cv2.resize(self.cv_image, canvas_size)
+            
+            resized_cv_image = cv2.resize(self.cv_image, canvas_size)
                 
             # Written self.pil_image to prevent Garbage Collector from
             # deleting function scope image
             # Read "Displaying Image In Tkinter Python" article in C# 
             # Corner website for more info, link in "Resources Used" 
             # at the top
-            self.pil_image = ImageTk.PhotoImage(Image.fromarray(self.cv_image))
+            self.pil_image = ImageTk.PhotoImage(Image.fromarray(resized_cv_image))
                     
             self.image_on_canvas = self.canvas.create_image(0, 0, anchor="nw", 
                                                             image=self.pil_image,
                                                             tag="canvas_image")
-            
-            # # Load labels for the chosen image
-            self.load_labels()
             
             # Calling self.load_labels() and self.draw_labels() when 
             # there are labels to draw to decrease the amount of times 
             # these functions get called and hopefully solve 
             # RecursionError
             if self.pred_labels != [] and self.pred_labels[1] != []:
-                # # Load labels for the chosen image
-                # self.load_labels()
+                # Load labels for the chosen image
+                self.load_labels()
                 self.draw_labels()
         else:
             self.chosen_img_label.config(text=f"Chosen Image: ")
@@ -1166,8 +969,8 @@ class NeuralNetworkGUI():
     
             self.canvas.itemconfig(self.image_on_canvas, 
                                    image=self.resized_photo_image)
-
             if self.pred_labels != []:
+
                 for label in self.pred_labels[1]:
                     self.canvas.delete(f"rectangle_{label[0]}")
                     self.canvas.delete(f"text_{label[0]}")
@@ -1398,7 +1201,8 @@ class NeuralNetworkGUI():
                                         normalized_x_middle, 
                                         normalized_y_middle, 
                                         normalized_width, normalized_height])
-                self.pred_label_ids.append(counter)        
+                self.pred_label_ids.append(counter)
+        
             elif (self.pred_labels != [] and self.pred_labels[1] != [] and
                     width > self.x_threshold and height > self.y_threshold):
                 # Gets the highest label's counter and adds 1 to it
@@ -1466,61 +1270,37 @@ class NeuralNetworkGUI():
 
             self.label_change_menu.config(values=self.label_options)
 
-    def choose_predictor(self, is_predicting_img=True):
+    def choose_predictor(self):
         """
         Chooses a prediction method according to user's choice of the
         option menu
 
         Parameters
         ----------
-        is_predicting_img : bool, default=True
-            Defines the order of elements in new_predictions and whether
-            new_predictions will be sent to self.assign_ids or used in
-            video tracking. True means predicting image, False means 
-            predicting video
+        None
 
         Returns
         ----------
-        is_predictor_chosen : bool
-            Shows if user has managed to successfully choose a predict
-            function. If True, a predict function is successfully called;
-            if False, some user error has happened and no predict 
-            function is called
+        None
         """
 
-        is_predictor_chosen = False
-
-        if is_predicting_img and self.cv_image is None:
+        if self.cv_image is None:
             messagebox.showerror(message="No image chosen to predict.",
                                  title="No Image to Predict")
-            return is_predictor_chosen
-        elif not is_predicting_img and self.video_dir == "":
-            messagebox.showerror(message="No video chosen to track.",
-                                 title="No Video to Track")
-            return is_predictor_chosen
+            return
         
         chosen_model = self.model_menu.get()
         self.pred_labels = []
 
         if chosen_model == "yolov8s":
-            self.predict_with_yolo(is_predicting_img=is_predicting_img)
-            is_predictor_chosen = True
+            self.predict_with_yolo()
         elif chosen_model == "faster_rcnn":
-            self.predict_with_faster_rcnn(is_predicting_img=is_predicting_img)
-            is_predictor_chosen = True
+            self.predict_with_faster_rcnn()
         elif chosen_model == "retina_net":
-            self.predict_with_retina_net(is_predicting_img=is_predicting_img)
-            is_predictor_chosen = True
+            self.predict_with_retina_net()
         else:
-            if is_predicting_img:
-                messagebox.showerror(message="Unknown predictor!!!", 
+            messagebox.showerror(message="Unknown predictor!!!", 
                                  title="Unknown Choice")
-            else:
-                msg = "Please choose a model for prediction on video!\n"
-                msg += "Saved video will be broken if no model is chosen!"
-                messagebox.showerror(message=msg, title="No Model Chosen")
-
-        return is_predictor_chosen
 
     def choose_model_weight(self):
         """
@@ -1570,18 +1350,14 @@ class NeuralNetworkGUI():
 
             messagebox.showerror(title="Unknown Choice", message=msg)            
 
-    def predict_with_yolo(self, is_predicting_img: bool):
+    def predict_with_yolo(self):
         """
         Loads weight in self.yolo_weights_dir to YOLO, performs 
         prediction on self.cv_image 
 
         Parameters
         ----------
-        is_predicting_img : bool
-            Defines the order of elements in new_predictions and whether
-            new_predictions will be sent to self.assign_ids or used in
-            video tracking. True means predicting image, False means 
-            predicting video
+        Nones
 
         Returns
         ----------
@@ -1590,6 +1366,7 @@ class NeuralNetworkGUI():
         
         model = YOLO(self.yolo_weights_dir)
 
+        print("MAKING PREDICTION WITH YOLO image shape: ", self.cv_image.shape)
         results = model.predict(self.cv_image, stream=self.stream, 
                                 imgsz=self.imgsz, show=self.show, 
                                 line_width=self.line_width)
@@ -1598,28 +1375,21 @@ class NeuralNetworkGUI():
 
         new_predictions = []
 
-        if is_predicting_img:
-            for result in results:
-                boxes_cls = result.boxes.cls.cpu().numpy()
-                boxes_xywhn = result.boxes.xywhn.cpu().numpy()
-    
-                for (box_cls, box_xywhn) in zip(boxes_cls, boxes_xywhn):
-                    new_predictions.append([int(box_cls), float(box_xywhn[0]), 
+        for result in results:
+            boxes_cls = result.boxes.cls.cpu().numpy()
+            boxes_xywhn = result.boxes.xywhn.cpu().numpy()
+
+            for (box_cls, box_xywhn) in zip(boxes_cls, boxes_xywhn):
+                new_predictions.append([int(box_cls), float(box_xywhn[0]), 
                                         float(box_xywhn[1]), float(box_xywhn[2]), 
                                         float(box_xywhn[3])])
-                    
-            self.assign_ids(new_predictions)
-        else:
-            for result in results:
-                boxes_cls = result.boxes.cls.cpu().numpy()
-                boxes_xywh = result.boxes.xywh.cpu().numpy()
 
-                for (box_cls, box_xywh) in zip(boxes_cls, boxes_xywh):
-                    self.pred_labels.append([float(box_xywh[0]), 
-                                        float(box_xywh[1]), float(box_xywh[2]), 
-                                        float(box_xywh[3]), int(box_cls)])
-                    
-    def predict_with_faster_rcnn(self, is_predicting_img: bool, num_classes=3):
+        if self.sort_tracking_enabled == False:
+            self.assign_ids(new_predictions) 
+        else:
+            self.pred_labels = [self.chosen_image_name, new_predictions]    
+
+    def predict_with_faster_rcnn(self, num_classes=3):
         """
         Loads weight in self.faster_rcnn_weights_dir to 
         fasterrcnn_resnet50_fpn_v2, performs prediction on PIL image
@@ -1629,12 +1399,6 @@ class NeuralNetworkGUI():
 
         Parameters
         ----------
-        is_predicting_img : bool
-            Defines the order of elements in new_predictions and whether
-            new_predictions will be sent to self.assign_ids or used in
-            video tracking. True means predicting image, False means 
-            predicting video
-
         num_classes : int, default=3
             Number of output classes (including background) for 
             FastRCNNPredictor
@@ -1684,24 +1448,20 @@ class NeuralNetworkGUI():
                     height = abs(y0 - y1)
                     x_middle = (x0 + x1) // 2
                     y_middle = (y0 + y1) // 2
+                    normalized_x_middle = x_middle / image_width
+                    normalized_y_middle = y_middle / image_height
+                    normalized_width = width / image_width
+                    normalized_height = height / image_height
 
-                    if is_predicting_img:
-                        normalized_x_middle = x_middle / image_width
-                        normalized_y_middle = y_middle / image_height
-                        normalized_width = width / image_width
-                        normalized_height = height / image_height
-    
-                        new_predictions.append([pred_class, normalized_x_middle, 
+                    new_predictions.append([pred_class, normalized_x_middle, 
                                             normalized_y_middle, 
                                             normalized_width, normalized_height])
-                    else:
-                        self.pred_labels.append([x_middle, y_middle, width,
-                                                 height, pred_class])
-
-        if is_predicting_img:
+        if self.sort_tracking_enabled == False:
             self.assign_ids(new_predictions) 
+        else:
+            self.pred_labels = [self.chosen_image_name, new_predictions]    
 
-    def predict_with_retina_net(self, is_predicting_img: bool, num_classes=3):
+    def predict_with_retina_net(self, num_classes=3):
         """
         Loads weight in self.retinanet_weights_dir to 
         retinanet_resnet50_fpn_v2, performs prediction on PIL image
@@ -1711,12 +1471,6 @@ class NeuralNetworkGUI():
 
         Parameters
         ----------
-        is_predicting_img : bool
-            Defines the order of elements in new_predictions and whether
-            new_predictions will be sent to self.assign_ids or used in
-            video tracking. True means predicting image, False means 
-            predicting video
-
         num_classes : int, default=3
             Number of output classes (including background) for 
             RetinaNetClassificationHead
@@ -1770,146 +1524,19 @@ class NeuralNetworkGUI():
                     height = abs(y0 - y1)
                     x_middle = (x0 + x1) // 2
                     y_middle = (y0 + y1) // 2
+                    normalized_x_middle = x_middle / image_width
+                    normalized_y_middle = y_middle / image_height
+                    normalized_width = width / image_width
+                    normalized_height = height / image_height
 
-                    if is_predicting_img:
-                        normalized_x_middle = x_middle / image_width
-                        normalized_y_middle = y_middle / image_height
-                        normalized_width = width / image_width
-                        normalized_height = height / image_height
-    
-                        new_predictions.append([pred_class, normalized_x_middle, 
+                    new_predictions.append([pred_class, normalized_x_middle, 
                                             normalized_y_middle, 
                                             normalized_width, normalized_height])
-                    else:
-                        self.pred_labels.append([x_middle, y_middle, width,
-                                                 height, pred_class])
 
-        if is_predicting_img:
-            self.assign_ids(new_predictions)
-
-    def tracking_in_video(self):
-        tracker = Tracker()
-
-        save_video_name = os.path.splitext(self.video_name)[0] + "_"
-        save_video_name += self.model_menu.get()
-        save_video_name += "_tracking" 
-        save_video_name += os.path.splitext(self.video_name)[1]
-        save_video_dir = os.path.join(self.video_folder, save_video_name)
-
-        cap = cv2.VideoCapture(self.video_dir)
-
-        # Apparently 'mp4v' is OpenCV's fallback tag for mp4 files
-        fourcc = cv2.VideoWriter.fourcc('m', 'p', '4', 'v')
-        out = cv2.VideoWriter(save_video_dir, fourcc=fourcc, fps=10,
-                              frameSize=(1920, 1080))
-
-        if not cap.isOpened():
-            print("Error while opening video")
-            return
-        
-        self.video_frame_counter = 1
-        
-        while cap.isOpened():
-            ret, frame = cap.read()
-
-            if not ret:
-                print("Error: Unable to fetch frame from video")
-                break
-
-            self.cv_image = frame
-            frame_height, frame_width = frame.shape[:2]
-
-            frame_name = os.path.splitext(self.video_name)[0]
-            frame_name += "_" + str(self.video_frame_counter) + ".jpg"
-            save_frame_dir = os.path.join(self.save_frames_dir, frame_name)
-
-            isWritten = cv2.imwrite(save_frame_dir, frame)
-        
-            if isWritten:
-                print(f"Written {frame_name} frame to {self.save_frames_dir}")
-
-            if not self.choose_predictor(is_predicting_img=False):
-                print("Error: Could not choose a predictor")
-                break
-
-            if self.pred_labels != []:
-                for pred_label in self.pred_labels:
-                    x_center = int(pred_label[0])
-                    y_center = int(pred_label[1])
-                    width = int(pred_label[2])
-                    height = int(pred_label[3])
-                    label_cls = int(pred_label[4])
-
-                    x_min = x_center - width // 2
-                    y_min = y_center - height // 2
-                    x_max = x_center + width // 2
-                    y_max = y_center + height // 2
-
-                    # Green for '0', Blue for '1'
-                    color = (0, 255, 0) if label_cls == 0 else (255, 0, 0)
-
-                    # Draw the rectangle (extra 3 pixels to prevent 
-                    # mixing with tracker bounding boxes)
-                    cv2.rectangle(frame, (x_min - 3, y_min - 3), 
-                                  (x_max + 3, y_max + 3), color, thickness=2)
-                    
-                # Updating self.pred_labels to 
-                # [id, x, y, width, height, label] format
-                self.pred_labels = tracker.update(self.pred_labels)
-
-                if self.pred_labels:
-                    normalized_pred_labels = []
-
-                    for pred in self.pred_labels:
-                        # Extract coordinates and dimensions
-                        x_center = int(pred[1])
-                        y_center = int(pred[2])
-                        width = int(pred[3])
-                        height = int(pred[4])
-                        label = int(pred[5])
-
-                        # Calculate rectangle coordinates
-                        x_min = x_center - width // 2
-                        y_min = y_center - height // 2
-                        x_max = x_center + width // 2
-                        y_max = y_center + height // 2
-        
-                        # Orange for '1', Red for '0' 
-                        color = (0, 0, 255) if label == 0 else (0, 165, 255)
-        
-                        # Draw the rectangle
-                        cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), 
-                                      color, thickness=2)
-
-                        # Put the tracker ID near the rectangle
-                        cv2.putText(frame, f"{pred[0]}", (x_min, y_min - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.6, 
-                                    color=(0, 0, 255), thickness=2)
-                        
-                        # Normalize values of pred according to 
-                        # frame_width and frame_height
-                        normalized_x_center = x_center / frame_width
-                        normalized_y_center = y_center / frame_height
-                        normalized_width = width / frame_width
-                        normalized_height = height / frame_height
-
-                        normalized_pred_labels.append(
-                            (int(pred[0]), normalized_x_center, 
-                             normalized_y_center, normalized_width, 
-                             normalized_height, int(pred[5]))
-                        )
-
-                    self.pred_labels = normalized_pred_labels
-
-                    self.save_preds_to_disk(is_saving_img_labels=False)
-
-            out.write(frame)
-            
-            msg = f"Successfully written frame {self.video_frame_counter}"
-            msg += " to video"
-            print(msg)
-
-            self.video_frame_counter += 1
+        if self.sort_tracking_enabled == False:
+            self.assign_ids(new_predictions) 
+        else:
+            self.pred_labels = [self.chosen_image_name, new_predictions]    
 
     def draw_labels(self):
         """
@@ -2103,16 +1730,13 @@ class NeuralNetworkGUI():
                     self.canvas.delete(f"text_{label[0]}")
                     break
 
-    def save_preds_to_disk(self, is_saving_img_labels=True):
+    def save_preds_to_disk(self):
         """
         Automatically saves labels in different formats and directories
 
         Parameters
         ----------
-        is_saving_img_labels : bool, default=True
-            Shows whether image labels or video labels are saved. It's
-            important because self.pred_labels have a different 
-            structure for image and video labels
+        None
 
         Returns
         ----------
@@ -2130,39 +1754,27 @@ class NeuralNetworkGUI():
             return
         '''
 
-        if is_saving_img_labels:
-            # Using str.split instead of os.path.splitext hoping to 
-            # solve RecursionError related to this line
-            # base_filename = os.path.splitext(self.chosen_image_name)[0]
-            base_filename = str.split(self.chosen_image_name, sep=".")[0]
-        else:
-            base_filename = str.split(self.video_name, sep=".")[0] 
-            base_filename += "_" + str(self.video_frame_counter)
+        # Using str.split instead of os.path.splitext hoping to solve
+        # RecursionError related to this line
+        # base_filename = os.path.splitext(self.chosen_image_name)[0]
+        base_filename = str.split(self.chosen_image_name, sep=".")[0]
 
         # Save in YOLO txt format
-        self.save_txt(
-            os.path.join(self.yolo_txt_folder, f"{base_filename}.txt"), 
-            is_saving_img_labels=is_saving_img_labels, is_yolo_format=True
-        )
+        self.save_txt(os.path.join(self.yolo_txt_folder, 
+                                   f"{base_filename}.txt"), is_yolo_format=True)
         # Save in corner coordinates txt format
-        self.save_txt(
-            os.path.join(self.cornercoordinates_txt_folder, 
-                         f"{base_filename}.txt"), 
-            is_saving_img_labels=is_saving_img_labels, is_yolo_format=False
-        )
+        self.save_txt(os.path.join(self.cornercoordinates_txt_folder, 
+                                   f"{base_filename}.txt"), is_yolo_format=False)
         # Save in YOLO json format
-        self.save_json(
-            os.path.join(self.yolo_json_folder, f"{base_filename}.json"), 
-            is_saving_img_labels=is_saving_img_labels, is_yolo_format=True
-        )
+        self.save_json(os.path.join(self.yolo_json_folder, 
+                                    f"{base_filename}.json"), 
+                        is_yolo_format=True)
         # Save in corner coordinates json format
-        self.save_json(
-            os.path.join(self.cornercoordinates_json_folder, 
-                         f"{base_filename}.json"), 
-            is_saving_img_labels=is_saving_img_labels, is_yolo_format=False
-        )
+        self.save_json(os.path.join(self.cornercoordinates_json_folder, 
+                                    f"{base_filename}.json"), 
+                        is_yolo_format=False)
     
-    def save_txt(self, path, is_saving_img_labels=True, is_yolo_format=False):
+    def save_txt(self, path, is_yolo_format: bool = False):
         """
         Saves labels in TXT format
 
@@ -2178,10 +1790,6 @@ class NeuralNetworkGUI():
         ----------
         path : str
             Path to save the txt file
-        is_saving_img_labels : bool, default=True
-            Shows whether image labels or video labels are saved. It's
-            important because self.pred_labels have a different 
-            structure for image and video labels            
         is_yolo_format : bool, default=False
             Shows whether TXT file should be saved in YOLO format or not
 
@@ -2192,7 +1800,7 @@ class NeuralNetworkGUI():
 
         labels_str = ""
 
-        if self.pred_labels != [] and is_saving_img_labels:
+        if self.pred_labels != []:
             for pred_label in self.pred_labels[1]:
                 pred_class = pred_label[1]
                 x_middle = pred_label[2]
@@ -2220,34 +1828,6 @@ class NeuralNetworkGUI():
 
                     labels_str += f"{pred_class} {x_start} {y_start}"
                     labels_str += f"{x_end} {y_end}\n"
-        elif self.pred_labels != [] and not is_saving_img_labels:
-            for pred_label in self.pred_labels:
-                x_middle = pred_label[1]
-                y_middle = pred_label[2]
-                box_width = pred_label[3]
-                box_height = pred_label[4]
-                pred_class = pred_label[5]
-
-                if is_yolo_format:
-                    labels_str += f"{pred_class} {x_middle} {y_middle} "
-                    labels_str += f"{box_width} {box_height}\n"
-                else:
-                    image_width = self.imgsz[0]
-                    image_height = self.imgsz[1]
-
-                    x_middle_px = int(x_middle * image_width)
-                    y_middle_px = int(y_middle * image_height)
-
-                    box_width_px = int(box_width * image_width)
-                    box_height_px = int(box_height * image_height)
-
-                    x_start = x_middle_px - box_width_px // 2
-                    y_start = y_middle_px - box_height_px // 2
-                    x_end = x_middle_px + box_width_px // 2
-                    y_end = y_middle_px + box_height_px // 2
-
-                    labels_str += f"{pred_class} {x_start} {y_start} "
-                    labels_str += f"{x_end} {y_end}\n"
 
         if path:
             try:
@@ -2257,7 +1837,7 @@ class NeuralNetworkGUI():
                 messagebox.showerror(message=f"Error: {e}",
                                      title="Error While Saving TXT")
     
-    def save_json(self, path, is_saving_img_labels=True, is_yolo_format=False):
+    def save_json(self, path, is_yolo_format: bool = False):
         """
         Saves labels in JSON format
 
@@ -2265,10 +1845,6 @@ class NeuralNetworkGUI():
         ----------
         path : str
             Path to save the json file
-        is_saving_img_labels : bool, default=True
-            Shows whether image labels or video labels are saved. It's
-            important because self.pred_labels have a different 
-            structure for image and video labels
         is_yolo_format : bool, default=False
             Shows whether JSON file should be saved in YOLO format or not
 
@@ -2276,9 +1852,8 @@ class NeuralNetworkGUI():
         ----------
         None
         """
-        
         labels_list = []
-        if self.pred_labels != [] and is_saving_img_labels:
+        if self.pred_labels != []:
             for pred_label in self.pred_labels[1]:
                 labels_dict = {}
 
@@ -2288,49 +1863,6 @@ class NeuralNetworkGUI():
                 y_middle = pred_label[3]
                 box_width = pred_label[4]
                 box_height = pred_label[5]
-
-                if is_yolo_format:
-                    labels_dict = {
-                        "id": counter,
-                        "class": pred_class,
-                        "x_middle": x_middle,
-                        "y_middle": y_middle,
-                        "width": box_width,
-                        "height": box_height
-                    }
-                else:
-                    image_width = self.imgsz[0]
-                    image_height = self.imgsz[1]
-
-                    x_middle_px = int(x_middle * image_width)
-                    y_middle_px = int(y_middle * image_height)
-
-                    box_width_px = int(box_width * image_width)
-                    box_height_px = int(box_height * image_height)
-
-                    x_start = x_middle_px - box_width_px // 2
-                    y_start = y_middle_px - box_height_px // 2
-                    x_end = x_middle_px + box_width_px // 2
-                    y_end = y_middle_px + box_height_px // 2
-
-                    labels_dict = {
-                        "id": counter,
-                        "class": pred_class,
-                        "x_start": x_start,
-                        "y_start": y_start,
-                        "x_end": x_end,
-                        "y_end": y_end
-                    }
-
-                labels_list.append(labels_dict)
-        elif self.pred_labels != [] and not is_saving_img_labels:
-            for pred_label in self.pred_labels:
-                counter = pred_label[0]
-                x_middle = pred_label[1]
-                y_middle = pred_label[2]
-                box_width = pred_label[3]
-                box_height = pred_label[4]
-                pred_class = pred_label[5]
 
                 if is_yolo_format:
                     labels_dict = {
@@ -2533,6 +2065,110 @@ class NeuralNetworkGUI():
         iou = interArea / float(boxAArea + boxBArea - interArea)
         return iou
 
+    def apply_tracking(self):
+        self.stop_tracking = False  # Add a flag to control the tracking process
+
+        def restart_application():
+            python = sys.executable
+            os.execl(python, python, *sys.argv)
+
+        def tracking_task():
+            tracker = Tracker()
+            max_track_id = 0  # Variable to store the maximum track ID encountered
+
+            # Check if labels folder exists and prompt the user
+            if os.path.exists(self.labels_folder):
+                proceed = messagebox.askyesno(title="Overwrite Labels Folder",
+                                            message="The labels folder already exists and will be overwritten. Do you want to proceed?")
+                if not proceed:
+                    self.sort_tracking_enabled = False
+                    return
+
+            self.sort_tracking_enabled = True
+
+            # Disable the main window to prevent user interaction
+            self.parent.attributes('-disabled', True)
+
+            # Create progress bar
+            progress_window = tkinter.Toplevel(self.parent)
+            progress_window.title("Tracking Progress")
+
+            def on_closing():
+                self.stop_tracking = True
+                restart_application()
+
+            progress_window.protocol("WM_DELETE_WINDOW", on_closing)
+
+            progress_label = tkinter.Label(progress_window, text="Processing images...")
+            progress_label.pack(pady=10)
+            progress_bar = tkinter.ttk.Progressbar(progress_window, orient="horizontal", length=300, mode="determinate")
+            progress_bar.pack(pady=10)
+            progress_bar["maximum"] = len(self.images_list)
+            progress_text = tkinter.Label(progress_window, text="0% (0 / {total})".format(total=len(self.images_list)))
+            progress_text.pack(pady=10)
+
+            for idx, image_name in enumerate(self.images_list):
+                if self.stop_tracking:  # Check if the stop flag is set
+                    break
+
+                image_path = os.path.join(self.folder_name, image_name)
+                frame = cv2.imread(image_path)
+                self.cv_image = frame
+                self.chosen_image_name = image_name
+                self.choose_predictor()
+
+                detections = []
+                if self.pred_labels[1] != []:
+                    for pred_label in self.pred_labels[1]:
+                        x_center = pred_label[1]
+                        y_center = pred_label[2]
+                        width = pred_label[3]
+                        height = pred_label[4]
+                        label_cls = int(pred_label[0])
+                        detections.append((x_center, y_center, width, height, label_cls))
+
+                    tracker_predictions = tracker.update(detections)
+                    if tracker_predictions:
+                        new_pred_labels = []
+                        for pred in tracker_predictions:
+                            id = int(pred[0])
+                            if id > max_track_id:  # Update max_track_id if a higher ID is encountered
+                                max_track_id = id
+                            x_center = float(pred[1])
+                            y_center = float(pred[2])
+                            width = float(pred[3])
+                            height = float(pred[4])
+                            label_cls = int(pred[5])
+                            new_pred_labels.append([id, label_cls, x_center, y_center, width, height])
+
+                        self.pred_labels[1] = new_pred_labels
+                        self.save_preds_to_disk()
+
+                        # Write the max_track_id to a file after each iteration
+                        with open(os.path.join(self.labels_folder, "max_track_id.txt"), "w") as f:
+                            f.write(str(max_track_id))
+
+                # Update progress bar
+                progress_bar["value"] = idx + 1
+                progress_percentage = int(((idx + 1) / len(self.images_list)) * 100)
+                progress_text.config(text="{percent}% ({current} / {total})".format(percent=progress_percentage, current=idx + 1, total=len(self.images_list)))
+                progress_window.update_idletasks()
+
+            self.sort_tracking_enabled = False
+            progress_window.destroy()
+            # Re-enable the main window
+            self.parent.attributes('-disabled', False)
+            if not self.stop_tracking:
+                messagebox.showinfo(title="Tracking Complete", message="Tracking on the image folder is complete.")
+            else:
+                restart_application()
+
+        tracking_thread = threading.Thread(target=tracking_task)
+        tracking_thread.start()
+
+            
+
+            
 
 if __name__ == "__main__":
     nn_gui = NeuralNetworkGUI()
