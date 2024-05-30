@@ -21,7 +21,7 @@ accessed 13 May 2024,
 Israel Dryer n.d., "Definitions", accessed 14 May 2024,
 <https://ttkbootstrap.readthedocs.io/en/latest/themes/definitions/>
 
-Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 15 May 2024,
+Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 25 May 2024,
 <https://docs.ultralytics.com/modes/predict/#boxes>
 
 albert 2015, "List of All Tkinter Events", Stack Exchange Inc., 
@@ -68,6 +68,10 @@ concatenated strings", Stack Exchange, Inc., accessed 24 May 2024,
 Curt Hagenloger 2009, "Best method for reading newline delimited files 
 and discarding the newlines?", Stack Exchange, Inc., 
 accessed 24 May 2024, <https://stackoverflow.com/a/544932>
+
+Dev Prakash Sharma 2021, "How to clear Tkinter Canvas?", 
+Tutorials Point, accessed 25 May 2024,
+<https://www.tutorialspoint.com/how-to-clear-tkinter-canvas>
 """
 
 import sys
@@ -119,14 +123,12 @@ class NeuralNetworkGUI():
     def __init__(self):
         self.parent = tkinter.Tk()
 
-        config_dirname = "GUI/config"
+        config_dirname = "config"
         yaml_name = "nn_gui_1.2_config.yaml"
         yaml_dir = os.path.join(config_dirname, yaml_name)
 
         with open(yaml_dir) as yaml_file:
             args_dict = yaml.safe_load(yaml_file)
-
-
 
         self.imgsz = args_dict["imgsz"]
         self.show = args_dict["show"]
