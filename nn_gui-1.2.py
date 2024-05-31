@@ -103,7 +103,7 @@ from scipy.optimize import linear_sum_assignment
 
 from ultralytics import YOLO
 
-from tracker import Tracker
+from sperm_detection.tracker import Tracker
 
 class NeuralNetworkGUI():
     """
@@ -125,6 +125,14 @@ class NeuralNetworkGUI():
 
         with open(yaml_dir) as yaml_file:
             args_dict = yaml.safe_load(yaml_file)
+
+        weights_dirname = args_dict["weights_dirname"]
+        yolo_weight_dirname = args_dict["yolo_weight_dirname"]
+        faster_rcnn_weight_dirname = args_dict["faster_rcnn_weight_dirname"]
+        retina_net_weight_dirname = args_dict["retina_net_weight_dirname"]
+        yolo_weight_name = args_dict["yolo_weight_name"]
+        faster_rcnn_weight_name = args_dict["faster_rcnn_weight_name"]
+        retina_net_weight_name = args_dict["retina_net_weight_name"]
 
         self.parent.bind("<w>", self.move_label_up)
         self.parent.bind("<a>", self.move_label_left)
@@ -200,6 +208,7 @@ class NeuralNetworkGUI():
         )
         
         self.script_dir = os.path.dirname(__file__)
+
 
     def init_window(self):
         """
