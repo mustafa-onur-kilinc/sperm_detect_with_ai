@@ -16,7 +16,7 @@ line_width: 2
 # GUI arguments
 background: "gray25"
 title: "Sperm Detection with AI"
-geometry: "1200x640" # In WidthxHeight format, no spaces before or after x
+geometry: "1380x720" # In WidthxHeight format, no spaces before or after x
 model_options:
   - "--Model--"
   - yolov8s

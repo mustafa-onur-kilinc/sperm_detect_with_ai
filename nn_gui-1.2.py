@@ -273,11 +273,13 @@ class NeuralNetworkGUI():
                                                  foreground=self.primary_color)
         self.pred_complete_label.pack(fill="none", side="top", expand=True)
 
-        extract_frames_button = tkinter.Button(options_frame, text="Extract Frames",
+        extract_frames_button = tkinter.Button(options_frame, 
+                                        text="Extract Frames",
                                         anchor="center", foreground="white",
                                         background=self.primary_color,
                                         activebackground=self.active_color,
-                                        borderwidth=0, command=self.extract_frames_from_video)
+                                        borderwidth=0, 
+                                        command=self.extract_frames_from_video)
         
         extract_frames_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10,
                                 side="left", expand=True)
@@ -362,22 +364,6 @@ class NeuralNetworkGUI():
         save_labels_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
                                 ipady=10, side="left", expand=True)
 
-        add_label_cls_button = tkinter.Button(options_frame,
-                                    text="New Class",
-                                    anchor="center", 
-                                    foreground="white",
-                                    background=self.primary_color,
-                                    activebackground=self.active_color,
-                                    borderwidth=0,
-                                    command=self.add_label_class)
-        add_label_cls_button.pack(fill="none", padx=0, pady=10, ipadx=10,
-                                  ipady=10, side="left", expand=True)
-        
-        add_label_cls_entry = tkinter.Entry(options_frame, bg="gray90",
-                                            textvariable=self.new_label_cls)
-        add_label_cls_entry.pack(fill="none", padx=20, pady=10, ipadx=10,
-                                  ipady=10, side="left", expand=True)
-        
         close_button = tkinter.Button(options_frame, text="Close",
                                       anchor="center", foreground="white",
                                       background=self.danger_color,
@@ -421,7 +407,21 @@ class NeuralNetworkGUI():
                                           command=self.slide_image)
         self.frame_slider.pack(fill="none", side="top", expand=True)
 
-
+        add_label_cls_button = tkinter.Button(label_update_frame,
+                                    text="New Class",
+                                    anchor="center", 
+                                    foreground="white",
+                                    background=self.primary_color,
+                                    activebackground=self.active_color,
+                                    borderwidth=0,
+                                    command=self.add_label_class)
+        add_label_cls_button.pack(fill="none", padx=0, pady=10, ipadx=10,
+                                  ipady=10, side="left", expand=True)
+        
+        add_label_cls_entry = tkinter.Entry(label_update_frame, bg="gray90",
+                                            textvariable=self.new_label_cls)
+        add_label_cls_entry.pack(fill="none", padx=20, pady=10, ipadx=10,
+                                  ipady=10, side="left", expand=True)
 
         change_label_button = tkinter.Button(label_update_frame, 
                                              text="Change Class",
@@ -432,7 +432,6 @@ class NeuralNetworkGUI():
                                              command=self.update_labels)
         change_label_button.pack(fill="none", padx=0, pady=10, ipadx=10, 
                                  ipady=10, side="left", expand=True)
-        
         
         self.label_change_menu = tkinter.ttk.Combobox(label_update_frame, 
                                                       values=self.label_options,
@@ -450,11 +449,6 @@ class NeuralNetworkGUI():
                                                   foreground=self.primary_color)
         self.selected_box_label.pack(fill="none", padx=20, pady=10, ipadx=10, 
                                   ipady=10, side="left", expand=True)
-        
-        label_id_entry = tkinter.Entry(label_update_frame, bg="gray90", 
-                                       textvariable=self.label_id)
-        label_id_entry.pack(fill="none", padx=20, pady=10, ipadx=10, 
-                            ipady=10, side="left", expand=True)
 
         change_label_id_button = tkinter.Button(label_update_frame, 
                                                 text="Change ID",
@@ -466,6 +460,11 @@ class NeuralNetworkGUI():
                                                 command=self.update_labels)
         change_label_id_button.pack(fill="none", padx=0, pady=10, ipadx=10, 
                                     ipady=10, side="left", expand=True)
+        
+        label_id_entry = tkinter.Entry(label_update_frame, bg="gray90", 
+                                       textvariable=self.label_id)
+        label_id_entry.pack(fill="none", padx=20, pady=10, ipadx=10, 
+                            ipady=10, side="left", expand=True)
         
         delete_label_button = tkinter.Button(label_update_frame, text="Delete Label",
                                 anchor="center", foreground="white",
