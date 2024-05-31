@@ -21,7 +21,7 @@ accessed 13 May 2024,
 Israel Dryer n.d., "Definitions", accessed 14 May 2024,
 <https://ttkbootstrap.readthedocs.io/en/latest/themes/definitions/>
 
-Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 15 May 2024,
+Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 25 May 2024,
 <https://docs.ultralytics.com/modes/predict/#boxes>
 
 albert 2015, "List of All Tkinter Events", Stack Exchange Inc., 
@@ -68,6 +68,13 @@ concatenated strings", Stack Exchange, Inc., accessed 24 May 2024,
 Curt Hagenloger 2009, "Best method for reading newline delimited files 
 and discarding the newlines?", Stack Exchange, Inc., 
 accessed 24 May 2024, <https://stackoverflow.com/a/544932>
+
+Dev Prakash Sharma 2021, "How to clear Tkinter Canvas?", 
+Tutorials Point, accessed 25 May 2024,
+<https://www.tutorialspoint.com/how-to-clear-tkinter-canvas>
+
+wm attributes 2018, accessed 31 May 2024, 
+<https://wiki.tcl-lang.org/page/wm+attributes>
 """
 
 import sys
@@ -119,7 +126,7 @@ class NeuralNetworkGUI():
     def __init__(self):
         self.parent = tkinter.Tk()
 
-        config_dirname = "GUI/config"
+        config_dirname = "config"
         yaml_name = "nn_gui_1.2_config.yaml"
         yaml_dir = os.path.join(config_dirname, yaml_name)
 
@@ -133,11 +140,6 @@ class NeuralNetworkGUI():
         yolo_weight_name = args_dict["yolo_weight_name"]
         faster_rcnn_weight_name = args_dict["faster_rcnn_weight_name"]
         retina_net_weight_name = args_dict["retina_net_weight_name"]
-
-        self.parent.bind("<w>", self.move_label_up)
-        self.parent.bind("<a>", self.move_label_left)
-        self.parent.bind("<s>", self.move_label_down)
-        self.parent.bind("<d>", self.move_label_right)
 
         self.imgsz = args_dict["imgsz"]
         self.show = args_dict["show"]
@@ -208,6 +210,15 @@ class NeuralNetworkGUI():
         )
         
         self.script_dir = os.path.dirname(__file__)
+        self.weights_dir = os.path.join(self.script_dir, weights_dirname)
+        self.yolo_weights_dir = os.path.join(self.weights_dir, yolo_weight_dirname,
+                                             yolo_weight_name)
+        self.faster_rcnn_weights_dir = os.path.join(self.weights_dir,
+                                                    faster_rcnn_weight_dirname,
+                                                    faster_rcnn_weight_name)
+        self.retinanet_weights_dir = os.path.join(self.weights_dir, 
+                                                  retina_net_weight_dirname,
+                                                  retina_net_weight_name)
 
 
     def init_window(self):
@@ -478,6 +489,11 @@ class NeuralNetworkGUI():
         self.parent.bind("<KeyPress-Left>", self.get_arrow_keys)
         self.parent.bind("<Control-c>", self.get_keyboard_shortcut)
         self.parent.bind("<Control-v>", self.get_keyboard_shortcut)
+
+        self.parent.bind("<w>", self.move_label_up)
+        self.parent.bind("<a>", self.move_label_left)
+        self.parent.bind("<s>", self.move_label_down)
+        self.parent.bind("<d>", self.move_label_right)
         
         self.canvas.bind("<Configure>", self.resize_image)
         self.canvas.bind("<B1-Motion>", self.get_dragging_coords)
@@ -2318,12 +2334,17 @@ class NeuralNetworkGUI():
 
             progress_window.protocol("WM_DELETE_WINDOW", on_closing)
 
-            progress_label = tkinter.Label(progress_window, text="Processing images...")
+            progress_label = tkinter.Label(progress_window, 
+                                           text="Processing images...")
             progress_label.pack(pady=10)
-            progress_bar = tkinter.ttk.Progressbar(progress_window, orient="horizontal", length=300, mode="determinate")
+            progress_bar = tkinter.ttk.Progressbar(progress_window, 
+                                                   orient="horizontal", 
+                                                   length=300, 
+                                                   mode="determinate")
             progress_bar.pack(pady=10)
             progress_bar["maximum"] = len(self.images_list)
-            progress_text = tkinter.Label(progress_window, text="0% (0 / {total})".format(total=len(self.images_list)))
+            progress_text = tkinter.Label(progress_window, 
+                                          text="0% (0 / {total})".format(total=len(self.images_list)))
             progress_text.pack(pady=10)
 
             frame_count = 0
@@ -2337,6 +2358,17 @@ class NeuralNetworkGUI():
                 self.cv_image = frame
                 self.chosen_image_name = image_name
                 self.choose_predictor()
+
+                if self.pred_labels == []:
+                    msg = "No prediction labels found. "
+                    msg += "Are you sure you have chosen a model for tracking?"
+                    messagebox.showerror(title="Error While Tracking",
+                                         message=msg)
+                    
+                    # Enable the main window so users can try again
+                    self.parent.attributes('-disabled', False)
+                    
+                    return
 
                 detections = []
                 if self.pred_labels[1] != []:
