@@ -209,6 +209,7 @@ class Tracker:
                 tr["width"],
                 tr["height"],
                 tr["label"],
+                tr["age"],
             )
             for tr in self.trackers
             if tr["missed"] <= 3 # Return trackers that is recently 
