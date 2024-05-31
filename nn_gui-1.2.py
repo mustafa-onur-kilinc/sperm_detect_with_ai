@@ -21,7 +21,7 @@ accessed 13 May 2024,
 Israel Dryer n.d., "Definitions", accessed 14 May 2024,
 <https://ttkbootstrap.readthedocs.io/en/latest/themes/definitions/>
 
-Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 25 May 2024,
+Glenn Jocher et. al. 2024, "Boxes", Ultralytics Inc., accessed 15 May 2024,
 <https://docs.ultralytics.com/modes/predict/#boxes>
 
 albert 2015, "List of All Tkinter Events", Stack Exchange Inc., 
@@ -68,10 +68,6 @@ concatenated strings", Stack Exchange, Inc., accessed 24 May 2024,
 Curt Hagenloger 2009, "Best method for reading newline delimited files 
 and discarding the newlines?", Stack Exchange, Inc., 
 accessed 24 May 2024, <https://stackoverflow.com/a/544932>
-
-Dev Prakash Sharma 2021, "How to clear Tkinter Canvas?", 
-Tutorials Point, accessed 25 May 2024,
-<https://www.tutorialspoint.com/how-to-clear-tkinter-canvas>
 """
 
 import sys
@@ -123,12 +119,17 @@ class NeuralNetworkGUI():
     def __init__(self):
         self.parent = tkinter.Tk()
 
-        config_dirname = "config"
+        config_dirname = "GUI/config"
         yaml_name = "nn_gui_1.2_config.yaml"
         yaml_dir = os.path.join(config_dirname, yaml_name)
 
         with open(yaml_dir) as yaml_file:
             args_dict = yaml.safe_load(yaml_file)
+
+        self.parent.bind("<w>", self.move_label_up)
+        self.parent.bind("<a>", self.move_label_left)
+        self.parent.bind("<s>", self.move_label_down)
+        self.parent.bind("<d>", self.move_label_right)
 
         self.imgsz = args_dict["imgsz"]
         self.show = args_dict["show"]
@@ -173,7 +174,8 @@ class NeuralNetworkGUI():
         self.x0 = self.x1 = self.y0 = self.y1 = None
         self.chosen_label_x = self.chosen_label_y = None
         self.original_pred_labels_len = None
-
+        
+        self.selected_label = None
         self.pred_labels = []
         self.pred_labels_delete = []  # Holds a previous model's pred_labels
         self.pred_label_ids = []  # A list to easily check label_ids
@@ -198,7 +200,6 @@ class NeuralNetworkGUI():
         )
         
         self.script_dir = os.path.dirname(__file__)
-
 
     def init_window(self):
         """
@@ -252,6 +253,14 @@ class NeuralNetworkGUI():
                                                  foreground=self.primary_color)
         self.pred_complete_label.pack(fill="none", side="top", expand=True)
 
+        extract_frames_button = tkinter.Button(options_frame, text="Extract Frames",
+                                        anchor="center", foreground="white",
+                                        background=self.primary_color,
+                                        activebackground=self.active_color,
+                                        borderwidth=0, command=self.extract_frames_from_video)
+        
+        extract_frames_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10,
+                                side="left", expand=True)
         choose_img_folder_button = tkinter.Button(options_frame, 
                                                   text="Choose Folder", 
                                                   anchor="center", 
@@ -263,7 +272,7 @@ class NeuralNetworkGUI():
         choose_img_folder_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
                                ipady=10, side="left", expand=True)
 
-        track_images_button = tkinter.Button(options_frame, text="Track Images",
+        track_images_button = tkinter.Button(options_frame, text="Apply Tracking",
                                      anchor="center", 
                                      foreground="white",
                                      background=self.primary_color,
@@ -333,6 +342,22 @@ class NeuralNetworkGUI():
         save_labels_button.pack(fill="none", padx=10, pady=10, ipadx=10, 
                                 ipady=10, side="left", expand=True)
 
+        add_label_cls_button = tkinter.Button(options_frame,
+                                    text="New Class",
+                                    anchor="center", 
+                                    foreground="white",
+                                    background=self.primary_color,
+                                    activebackground=self.active_color,
+                                    borderwidth=0,
+                                    command=self.add_label_class)
+        add_label_cls_button.pack(fill="none", padx=0, pady=10, ipadx=10,
+                                  ipady=10, side="left", expand=True)
+        
+        add_label_cls_entry = tkinter.Entry(options_frame, bg="gray90",
+                                            textvariable=self.new_label_cls)
+        add_label_cls_entry.pack(fill="none", padx=20, pady=10, ipadx=10,
+                                  ipady=10, side="left", expand=True)
+        
         close_button = tkinter.Button(options_frame, text="Close",
                                       anchor="center", foreground="white",
                                       background=self.danger_color,
@@ -376,24 +401,10 @@ class NeuralNetworkGUI():
                                           command=self.slide_image)
         self.frame_slider.pack(fill="none", side="top", expand=True)
 
-        add_label_cls_button = tkinter.Button(label_update_frame,
-                                              text="Add Label",
-                                              anchor="center", 
-                                              foreground="white",
-                                              background=self.primary_color,
-                                              activebackground=self.active_color,
-                                              borderwidth=0,
-                                              command=self.add_label_class)
-        add_label_cls_button.pack(fill="none", padx=0, pady=10, ipadx=10,
-                                  ipady=10, side="left", expand=True)
-        
-        add_label_cls_entry = tkinter.Entry(label_update_frame, bg="gray90",
-                                            textvariable=self.new_label_cls)
-        add_label_cls_entry.pack(fill="none", padx=20, pady=10, ipadx=10,
-                                  ipady=10, side="left", expand=True)
+
 
         change_label_button = tkinter.Button(label_update_frame, 
-                                             text="Change Label",
+                                             text="Change Class",
                                              anchor="center", foreground="white",
                                              background=self.warning_color,  
                                              activebackground=self.active_color,
@@ -401,6 +412,7 @@ class NeuralNetworkGUI():
                                              command=self.update_labels)
         change_label_button.pack(fill="none", padx=0, pady=10, ipadx=10, 
                                  ipady=10, side="left", expand=True)
+        
         
         self.label_change_menu = tkinter.ttk.Combobox(label_update_frame, 
                                                       values=self.label_options,
@@ -435,6 +447,24 @@ class NeuralNetworkGUI():
         change_label_id_button.pack(fill="none", padx=0, pady=10, ipadx=10, 
                                     ipady=10, side="left", expand=True)
         
+        delete_label_button = tkinter.Button(label_update_frame, text="Delete Label",
+                                anchor="center", foreground="white",
+                                background=self.danger_color,
+                                activebackground=self.active_color,
+                                borderwidth=0, command=self.delete_selected_label)
+        
+        delete_label_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10,
+                                side="left", expand=True)
+        
+        # Add Multiframe Edit button to the bottom_button_frame
+        multiframe_edit_button = tkinter.Button(label_update_frame, text="Multiframe-Edit",
+                                                anchor="center", foreground="white",
+                                                background=self.primary_color,
+                                                activebackground=self.active_color,
+                                                borderwidth=0, command=self.open_multiframe_edit_window)
+        multiframe_edit_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10,
+                                    side="right")
+        
         self.parent.bind("<KeyPress-Right>", self.get_arrow_keys)
         self.parent.bind("<KeyPress-Left>", self.get_arrow_keys)
         self.parent.bind("<Control-c>", self.get_keyboard_shortcut)
@@ -445,6 +475,105 @@ class NeuralNetworkGUI():
         self.canvas.bind("<ButtonRelease-1>", self.get_mouse_release_coords)
         self.canvas.bind("<Button-1>", self.get_mouse_click_coords)
         self.canvas.bind("<Button-3>", self.delete_labels)
+
+    def open_multiframe_edit_window(self):
+        max_frame = len(self.images_list)
+        multiframe_window = tkinter.Toplevel(self.parent)
+        multiframe_window.title("Multiframe Edit")
+
+        start_frame_label = tkinter.Label(multiframe_window, text="Start Frame:")
+        start_frame_label.grid(row=0, column=0, padx=10, pady=5)
+        self.start_frame_entry = tkinter.Entry(multiframe_window)
+        self.start_frame_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        end_frame_label = tkinter.Label(multiframe_window, text="End Frame:")
+        end_frame_label.grid(row=1, column=0, padx=10, pady=5)
+        self.end_frame_entry = tkinter.Entry(multiframe_window)
+        self.end_frame_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        label_id_label = tkinter.Label(multiframe_window, text="Label ID:")
+        label_id_label.grid(row=2, column=0, padx=10, pady=5)
+        self.label_id_entry = tkinter.Entry(multiframe_window)
+        self.label_id_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        action_label = tkinter.Label(multiframe_window, text="Action:")
+        action_label.grid(row=3, column=0, padx=10, pady=5)
+        self.action_menu = tkinter.ttk.Combobox(multiframe_window, values=["Change ID", "Delete", "Change Class", "Swap ID"])
+        self.action_menu.grid(row=3, column=1, padx=10, pady=5)
+        self.action_menu.set("Change ID")
+
+        new_value_label = tkinter.Label(multiframe_window, text="Value:")
+        new_value_label.grid(row=4, column=0, padx=10, pady=5)
+        self.new_value_entry = tkinter.Entry(multiframe_window)
+        self.new_value_entry.grid(row=4, column=1, padx=10, pady=5)
+
+        apply_button = tkinter.Button(multiframe_window, text="Apply", command=self.apply_multiframe_edit)
+        apply_button.grid(row=5, column=0, columnspan=2, pady=10)
+
+    def apply_multiframe_edit(self):
+        return_image = self.chosen_image_name
+        try:
+            start_frame = int(self.start_frame_entry.get())
+            end_frame = int(self.end_frame_entry.get())
+            label_id = int(self.label_id_entry.get())
+            action = self.action_menu.get()
+            new_value = self.new_value_entry.get()
+            new_value = int(new_value) if new_value else None
+
+            if start_frame > end_frame:
+                messagebox.showerror("Invalid Input", "Start frame cannot be greater than end frame.")
+                return
+
+            if end_frame > len(self.images_list):
+                messagebox.showerror("Invalid Input", f"End frame cannot be greater than the total number of frames ({len(self.images_list)}).")
+                return
+
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Please enter valid input values.")
+            return
+        
+        unchanged_frames = []
+        for frame_num in range(start_frame, end_frame + 1):
+            image_name = self.images_list[frame_num - 1]
+            self.chosen_image_name = image_name
+            self.load_labels()
+
+            if action == "Delete":
+                self.pred_labels[1] = [label for label in self.pred_labels[1] if label[0] != label_id]
+            elif action == "Change ID":
+                new_id = new_value
+                if any(label[0] == new_id for label in self.pred_labels[1]):
+                    unchanged_frames.append(frame_num)
+                    continue
+                for label in self.pred_labels[1]:
+                    if label[0] == label_id:
+                        label[0] = new_id
+            elif action == "Change Class":
+                new_class = new_value
+                for label in self.pred_labels[1]:
+                    if label[0] == label_id:
+                        label[1] = new_class
+            elif action == "Swap ID":
+                if new_value is None:
+                    messagebox.showerror("Invalid Input", "Please enter a valid ID to swap.")
+                    return
+                for label in self.pred_labels[1]:
+                    if label[0] == label_id:
+                        label[0] = new_value
+                    elif label[0] == new_value:
+                        label[0] = label_id
+
+            self.save_preds_to_disk()
+
+        # Reload original frame labels
+        self.chosen_image_name = return_image
+        self.load_labels()
+        self.draw_labels()
+
+        if unchanged_frames:
+            messagebox.showwarning("Unchanged Frames", f"Some frames were not changed due to ID conflicts: {unchanged_frames}")
+        else:
+            messagebox.showinfo("Success", "Multiframe edit applied successfully.")
 
     def open_folder(self):
         """
@@ -668,10 +797,9 @@ class NeuralNetworkGUI():
         else:
             self.previous_frame_pred_labels = []
         
-        print("Current frame labels: ", self.pred_labels)
-        print("Previous frame labels: ", self.previous_frame_pred_labels)
-        # print("====================================================")
-        print("=" * 52)
+        #print("Current frame labels: ", self.pred_labels)
+        #print("Previous frame labels: ", self.previous_frame_pred_labels)
+        #print("=" * 52)
             
     def get_arrow_keys(self, event):
         """
@@ -1085,6 +1213,37 @@ class NeuralNetworkGUI():
         elif event.state & 0x0004 == 0x0004 and event.keycode == 86:
             self.paste_label()
 
+
+    def move_label_up(self, event):
+        if self.selected_label:
+            self.selected_label[3] = max(0, self.selected_label[3] - 0.005)  # Move up by decreasing y_center
+            self.update_pred_labels(self.selected_label)
+            self.draw_labels()
+
+    def move_label_down(self, event):
+        if self.selected_label:
+            self.selected_label[3] = min(1, self.selected_label[3] + 0.005)  # Move down by increasing y_center
+            self.update_pred_labels(self.selected_label)
+            self.draw_labels()
+
+    def move_label_left(self, event):
+        if self.selected_label:
+            self.selected_label[2] = max(0, self.selected_label[2] - 0.005)  # Move left by decreasing x_center
+            self.update_pred_labels(self.selected_label)
+            self.draw_labels()
+
+    def move_label_right(self, event):
+        if self.selected_label:
+            self.selected_label[2] = min(1, self.selected_label[2] + 0.005)  # Move right by increasing x_center
+            self.update_pred_labels(self.selected_label)
+            self.draw_labels()
+
+    def update_pred_labels(self, updated_label):
+        for i, label in enumerate(self.pred_labels[1]):
+            if label[0] == updated_label[0]:
+                self.pred_labels[1][i] = updated_label
+                break
+
     def copy_label(self):
         """
         Lets user choose and copy a label from a frame into 
@@ -1368,7 +1527,6 @@ class NeuralNetworkGUI():
         
         model = YOLO(self.yolo_weights_dir)
 
-        print("MAKING PREDICTION WITH YOLO image shape: ", self.cv_image.shape)
         results = model.predict(self.cv_image, stream=self.stream, 
                                 imgsz=self.imgsz, show=self.show, 
                                 line_width=self.line_width)
@@ -1585,6 +1743,11 @@ class NeuralNetworkGUI():
                 text_location_y = y0 - self.text_distance_y
 
                 rect_color = self.label_colors[pred_class]
+
+                # Check if this label is the selected one
+                if self.selected_label and self.selected_label[0] == counter:
+                    rect_color = "red"
+                    
     
                 self.canvas.create_rectangle(x0, y0, x1, y1,
                                              tags=f"rectangle_{counter}",
@@ -1598,85 +1761,83 @@ class NeuralNetworkGUI():
                 
             self.pred_labels_delete = self.pred_labels[1].copy()
 
-    def update_labels(self):
-        """
-        Gets left click coordinates from self.get_mouse_click_coords()
-        function, checks if clicked location is within a bounding box, 
-        if user has clicked a bounding box, lets user change class and 
-        id of that bounding box's label. Calls self.draw_labels() to 
-        display new labels to user
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        ----------
-        None
-        """
-        
+    def delete_selected_label(self):
         if self.cv_image is None:
             messagebox.showerror(title="No Image Selected",
-                                 message="No image selected to update labels of.")
+                                message="No image selected to delete labels from.")
             return
-        
+
+        if self.selected_label is None:
+            messagebox.showerror(title="No Label Selected",
+                                message="No label selected to delete.")
+            return
+
+        if self.pred_labels != []:
+            self.pred_labels[1].remove(self.selected_label)
+            self.canvas.delete(f"rectangle_{self.selected_label[0]}")
+            self.canvas.delete(f"text_{self.selected_label[0]}")
+            self.selected_label = None
+            self.selected_box_label.config(text="Selected Box: ")
+            self.draw_labels()
+
+    def update_labels(self):
+        if self.cv_image is None:
+            messagebox.showerror(title="No Image Selected", message="No image selected to update labels of.")
+            return
+
         if self.chosen_label_x is None or self.chosen_label_y is None:
-            messagebox.showerror(title="No Label Selected", 
-                                 message="No label selected to update.")
+            messagebox.showerror(title="No Label Selected", message="No label selected to update.")
             return
-        
+
         click_x = self.chosen_label_x
         click_y = self.chosen_label_y
-        
+
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
+
+        previous_selected_label = self.selected_label  # Store previous selected label
+        self.selected_label = None  # Reset selected_label
 
         if self.pred_labels != []:
             for label in self.pred_labels[1]:
                 width = int(label[4] * canvas_width)
                 height = int(label[5] * canvas_height)
-                x0 = int(label[2] * canvas_width) - width // 2            
+                x0 = int(label[2] * canvas_width) - width // 2
                 x1 = int(label[2] * canvas_width) + width // 2
                 y0 = int(label[3] * canvas_height) - height // 2
                 y1 = int(label[3] * canvas_height) + height // 2
 
-                is_in_x = (click_x - x0) < width and (x1 - click_x) < width
-                is_in_y = (click_y - y0) < height and (y1 - click_y) < height
+                is_in_x = (click_x - x0 - 4) < width and (x1 - click_x - 4) < width
+                is_in_y = (click_y - y0 - 4) < height and (y1 - click_y - 4) < height
 
                 if is_in_x and is_in_y:
                     self.selected_box_label.config(text=f"Selected Box: {label[0]}")
+                    self.selected_label = label  # Store selected label
 
                     try:
                         chosen_label = self.label_change_menu.get()
                         label_index = self.label_options.index(chosen_label)
 
-                        # self.label_options[0] = "--Label Type--"
                         if label_index >= 1:
-                            # label_index - 1 because index gives values 
-                            # starting from 1 and would cause IndexError
-                            # otherwise
                             label[1] = label_index - 1
 
                         self.label_change_menu.set(self.label_options[0])
-                    except ValueError as e:    
-                        messagebox.showerror(title="Error While Choosing Label",
-                                             message=f"Error: {e}")
-                    
+                    except ValueError as e:
+                        messagebox.showerror(title="Error While Choosing Label", message=f"Error: {e}")
+
                     if self.label_id.get() != "":
                         i = 0
                         label_id = int(self.label_id.get())
 
                         self.selected_box_label.config(text=f"Selected Box: {label[0]}")
 
-                        while (label_id != self.pred_labels[1][i][0] and 
-                               i < len(self.pred_labels[1]) - 1):
+                        while (label_id != self.pred_labels[1][i][0] and i < len(self.pred_labels[1]) - 1):
                             i += 1
-                        
-                        if (i >= len(self.pred_labels[1]) - 1 and
-                                label_id != self.pred_labels[1][-1][0]):
+
+                        if (i >= len(self.pred_labels[1]) - 1 and label_id != self.pred_labels[1][-1][0]):
                             self.canvas.delete(f"text_{label[0]}")
                             label[0] = label_id
-                            
+
                         self.selected_box_label.config(text=f"Selected Box: {label[0]}")
 
                         self.label_id.set("")
@@ -1684,6 +1845,20 @@ class NeuralNetworkGUI():
 
                     break
 
+        # Update the color of the previous selected label to its original color
+        if previous_selected_label:
+            print("Previous selected label condition")
+            print(previous_selected_label)
+            self.canvas.itemconfig(f"rectangle_{previous_selected_label[0]}", outline=self.label_colors[previous_selected_label[1]])
+            self.canvas.itemconfig(f"text_{previous_selected_label[0]}", fill=self.label_colors[previous_selected_label[1]])
+
+        # Update the color of the new selected label to red
+        if self.selected_label:
+            print("self.selected_label condition")
+            print(self.selected_label)
+            self.canvas.itemconfig(f"rectangle_{self.selected_label[0]}", outline="red")
+            self.canvas.itemconfig(f"text_{self.selected_label[0]}", fill="red")
+        self.parent.update_idletasks()  # Ensure the canvas is updated immediately
         self.draw_labels()
 
     def delete_labels(self, event):
@@ -2067,6 +2242,39 @@ class NeuralNetworkGUI():
         iou = interArea / float(boxAArea + boxBArea - interArea)
         return iou
 
+    def extract_frames_from_video(self):
+        video_path = filedialog.askopenfilename(title="Select a Video File",
+                                                filetypes=[("Video files", "*.mp4 *.avi *.mov *.mkv")])
+        if not video_path:
+            messagebox.showwarning("No File Selected", "Please select a video file.")
+            return
+
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        output_folder = os.path.join(os.path.dirname(video_path), video_name)
+
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        cap = cv2.VideoCapture(video_path)
+        frame_count = 0
+
+        if not cap.isOpened():
+            messagebox.showerror("Error", "Could not open video file.")
+            return
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame_count += 1
+            frame_filename = os.path.join(output_folder, f"{video_name}_{frame_count}.jpg")
+            print(f"Frame {frame_count} has been read succesfully.")
+            cv2.imwrite(frame_filename, frame)
+
+        cap.release()
+        messagebox.showinfo("Success", f"Extracted {frame_count} frames to folder: {output_folder}")
+
     def apply_tracking(self):
         self.stop_tracking = False  # Add a flag to control the tracking process
 
@@ -2109,7 +2317,9 @@ class NeuralNetworkGUI():
             progress_text = tkinter.Label(progress_window, text="0% (0 / {total})".format(total=len(self.images_list)))
             progress_text.pack(pady=10)
 
+            frame_count = 0
             for idx, image_name in enumerate(self.images_list):
+                frame_count += 1
                 if self.stop_tracking:  # Check if the stop flag is set
                     break
 
@@ -2141,7 +2351,11 @@ class NeuralNetworkGUI():
                             width = float(pred[3])
                             height = float(pred[4])
                             label_cls = int(pred[5])
-                            new_pred_labels.append([id, label_cls, x_center, y_center, width, height])
+                            tracker_age = pred[6]
+                            if tracker_age > 3 or frame_count <= 10:
+                                new_pred_labels.append([id, label_cls, x_center, y_center, width, height])
+
+                            
 
                         self.pred_labels[1] = new_pred_labels
                         self.save_preds_to_disk()
