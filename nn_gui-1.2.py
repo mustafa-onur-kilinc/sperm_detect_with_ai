@@ -501,6 +501,19 @@ class NeuralNetworkGUI():
         self.canvas.bind("<Button-3>", self.delete_labels)
 
     def open_multiframe_edit_window(self):
+        """
+        Creates a multiframe_window that lets users change or delete 
+        labels in multiple frames with a single click.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        ----------
+        None
+        """
+        
         max_frame = len(self.images_list)
         multiframe_window = tkinter.Toplevel(self.parent)
         multiframe_window.title("Multiframe Edit")
@@ -522,7 +535,10 @@ class NeuralNetworkGUI():
 
         action_label = tkinter.Label(multiframe_window, text="Action:")
         action_label.grid(row=3, column=0, padx=10, pady=5)
-        self.action_menu = tkinter.ttk.Combobox(multiframe_window, values=["Change ID", "Delete", "Change Class", "Swap ID"])
+        action_menu_values = ["Change ID", "Delete", "Change Class", "Swap ID"]
+        self.action_menu = tkinter.ttk.Combobox(multiframe_window, 
+                                                values=action_menu_values,
+                                                state="readonly")
         self.action_menu.grid(row=3, column=1, padx=10, pady=5)
         self.action_menu.set("Change ID")
 
@@ -531,11 +547,28 @@ class NeuralNetworkGUI():
         self.new_value_entry = tkinter.Entry(multiframe_window)
         self.new_value_entry.grid(row=4, column=1, padx=10, pady=5)
 
-        apply_button = tkinter.Button(multiframe_window, text="Apply", command=self.apply_multiframe_edit)
+        apply_button = tkinter.Button(multiframe_window, text="Apply", 
+                                      command=self.apply_multiframe_edit)
         apply_button.grid(row=5, column=0, columnspan=2, pady=10)
 
     def apply_multiframe_edit(self):
+        """
+        Reads user choices from multiframe_window in 
+        self.open_multiframe_edit_window function and applies the 
+        command the user has chosen to frames between start frame and
+        end frame chosen by user
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        ----------
+        None
+        """
+        
         return_image = self.chosen_image_name
+
         try:
             start_frame = int(self.start_frame_entry.get())
             end_frame = int(self.end_frame_entry.get())
@@ -545,15 +578,18 @@ class NeuralNetworkGUI():
             new_value = int(new_value) if new_value else None
 
             if start_frame > end_frame:
-                messagebox.showerror("Invalid Input", "Start frame cannot be greater than end frame.")
+                messagebox.showerror(title="Invalid Input", 
+                                     message="Start frame cannot be greater than end frame.")
                 return
 
             if end_frame > len(self.images_list):
-                messagebox.showerror("Invalid Input", f"End frame cannot be greater than the total number of frames ({len(self.images_list)}).")
+                messagebox.showerror(title="Invalid Input", 
+                                     message=f"End frame cannot be greater than the total number of frames ({len(self.images_list)}).")
                 return
 
         except ValueError:
-            messagebox.showerror("Invalid Input", "Please enter valid input values.")
+            messagebox.showerror(title="Invalid Input", 
+                                 message="Please enter valid input values.")
             return
         
         unchanged_frames = []
@@ -579,7 +615,8 @@ class NeuralNetworkGUI():
                         label[1] = new_class
             elif action == "Swap ID":
                 if new_value is None:
-                    messagebox.showerror("Invalid Input", "Please enter a valid ID to swap.")
+                    messagebox.showerror(title="Invalid Input", 
+                                         message="Please enter a valid ID to swap.")
                     return
                 for label in self.pred_labels[1]:
                     if label[0] == label_id:
@@ -595,9 +632,11 @@ class NeuralNetworkGUI():
         self.draw_labels()
 
         if unchanged_frames:
-            messagebox.showwarning("Unchanged Frames", f"Some frames were not changed due to ID conflicts: {unchanged_frames}")
+            messagebox.showwarning(title="Unchanged Frames", 
+                                   message=f"Some frames were not changed due to ID conflicts: {unchanged_frames}")
         else:
-            messagebox.showinfo("Success", "Multiframe edit applied successfully.")
+            messagebox.showinfo(title="Success", 
+                                message="Multiframe edit applied successfully.")
 
     def open_folder(self):
         """
@@ -1239,30 +1278,120 @@ class NeuralNetworkGUI():
 
 
     def move_label_up(self, event):
+        """
+        Reads events from the widget it's binded to (self.parent), if
+        event is user pressing W button, moves the self.selected_label 
+        up by decreasing its y_center value by a certain number, calls 
+        self.update_pred_labels() and self.draw_labels() functions to 
+        update self.pred_labels list and display moved label to user. 
+        Does nothing for other user inputs.
+
+        Parameters
+        ----------
+        event : tkinter event
+            The user event this function handles
+
+        Returns
+        ----------
+        None
+        """
+
         if self.selected_label:
-            self.selected_label[3] = max(0, self.selected_label[3] - 0.005)  # Move up by decreasing y_center
+            # Move up by decreasing y_center
+            self.selected_label[3] = max(0, self.selected_label[3] - 0.005)
             self.update_pred_labels(self.selected_label)
             self.draw_labels()
 
     def move_label_down(self, event):
+        """
+        Reads events from the widget it's binded to (self.parent), if
+        event is user pressing S button, moves the self.selected_label 
+        down by increasing its y_center value by a certain number, calls 
+        self.update_pred_labels() and self.draw_labels() functions to 
+        update self.pred_labels list and display moved label to user. 
+        Does nothing for other user inputs.
+
+        Parameters
+        ----------
+        event : tkinter event
+            The user event this function handles
+
+        Returns
+        ----------
+        None
+        """
+
         if self.selected_label:
-            self.selected_label[3] = min(1, self.selected_label[3] + 0.005)  # Move down by increasing y_center
+            # Move down by increasing y_center
+            self.selected_label[3] = min(1, self.selected_label[3] + 0.005)
             self.update_pred_labels(self.selected_label)
             self.draw_labels()
 
     def move_label_left(self, event):
+        """
+        Reads events from the widget it's binded to (self.parent), if
+        event is user pressing A button, moves the self.selected_label 
+        left by decreasing its x_center value by a certain number, calls 
+        self.update_pred_labels() and self.draw_labels() functions to 
+        update self.pred_labels list and display moved label to user. 
+        Does nothing for other user inputs.
+
+        Parameters
+        ----------
+        event : tkinter event
+            The user event this function handles
+
+        Returns
+        ----------
+        None
+        """
+        
         if self.selected_label:
-            self.selected_label[2] = max(0, self.selected_label[2] - 0.005)  # Move left by decreasing x_center
+            # Move left by decreasing x_center
+            self.selected_label[2] = max(0, self.selected_label[2] - 0.005)  
             self.update_pred_labels(self.selected_label)
             self.draw_labels()
 
     def move_label_right(self, event):
+        """
+        Reads events from the widget it's binded to (self.parent), if
+        event is user pressing D button, moves the self.selected_label 
+        right by increasing its x_center value by a certain number, 
+        calls self.update_pred_labels() and self.draw_labels() functions 
+        to update self.pred_labels list and display moved label to user. 
+        Does nothing for other user inputs.
+
+        Parameters
+        ----------
+        event : tkinter event
+            The user event this function handles
+
+        Returns
+        ----------
+        None
+        """
+        
         if self.selected_label:
-            self.selected_label[2] = min(1, self.selected_label[2] + 0.005)  # Move right by increasing x_center
+            # Move right by increasing x_center
+            self.selected_label[2] = min(1, self.selected_label[2] + 0.005)  
             self.update_pred_labels(self.selected_label)
             self.draw_labels()
 
     def update_pred_labels(self, updated_label):
+        """
+        Finds the label in self.pred_labels that matches ID of 
+        updated_label and assigns updated_label to the matching label
+
+        Parameters
+        ----------
+        updated_label : list
+            Holds a single label in a frame
+
+        Returns
+        ----------
+        None
+        """
+        
         for i, label in enumerate(self.pred_labels[1]):
             if label[0] == updated_label[0]:
                 self.pred_labels[1][i] = updated_label
@@ -1520,8 +1649,8 @@ class NeuralNetworkGUI():
 
             self.model_menu.set("yolov8s")
         elif (weight_name.lower().find("faster") != -1 
-                or weight_name.lower().find("rcnn") != -1
-                or weight_name.lower().find("r-cnn") != -1):
+                and (weight_name.lower().find("rcnn") != -1
+                or weight_name.lower().find("r-cnn") != -1)):
             self.faster_rcnn_weights_dir = weight_dir
 
             self.model_menu.set("faster_rcnn")
@@ -2003,6 +2132,7 @@ class NeuralNetworkGUI():
 
         if self.pred_labels != []:
             for pred_label in self.pred_labels[1]:
+                label_id = pred_label[0]
                 pred_class = pred_label[1]
                 x_middle = pred_label[2]
                 y_middle = pred_label[3]
@@ -2010,8 +2140,8 @@ class NeuralNetworkGUI():
                 box_height = pred_label[5]
 
                 if is_yolo_format:
-                    labels_str += f"{pred_class} {x_middle} {y_middle}"
-                    labels_str += f"{box_width} {box_height}\n"
+                    labels_str += f"{label_id} {pred_class} {x_middle} "
+                    labels_str += f"{y_middle} {box_width} {box_height}\n"
                 else:
                     image_width = self.imgsz[0]
                     image_height = self.imgsz[1]
@@ -2027,8 +2157,8 @@ class NeuralNetworkGUI():
                     x_end = x_middle_px + box_width_px // 2
                     y_end = y_middle_px + box_height_px // 2
 
-                    labels_str += f"{pred_class} {x_start} {y_start}"
-                    labels_str += f"{x_end} {y_end}\n"
+                    labels_str += f"{label_id} {pred_class} {x_start} "
+                    labels_str += f"{y_start} {x_end} {y_end}\n"
 
         if path:
             try:
