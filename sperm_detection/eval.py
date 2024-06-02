@@ -164,7 +164,7 @@ def eval_model(
         "categories": categories_info,
     }
 
-    save_dir = get_next_run_directory(r"sperm-detection\runs\eval")
+    save_dir = get_next_run_directory(r"sperm_detection\runs\eval")
     os.makedirs(save_dir, exist_ok=True)
     weights_name = os.path.basename(weights)
     weights_name = os.path.splitext(weights_name)[0]
@@ -194,14 +194,19 @@ def eval_model(
 
 
 if __name__ == "__main__":
+    script_dir = os.path.dirname(__file__)
+    main_dir = os.path.split(script_dir)[0]
+
     model_name = "retinanet"
     backbone_name = "resnet50"
-    weights = r"sperm-detection\runs\train\run_7\RetinaNet_resnet50_epoch_18.pth"
+    weights = os.path.join(main_dir, "weights", "retina_net",
+                           "RetinaNet_resnet50_epoch_18.pth")
 
-    val_dir = r"dataset\dataset-split1\test"
+    val_dir = os.path.join(main_dir, "dataset-split2", "test")
     eval_model(model_name, backbone_name, weights, val_dir, resize=(1080, 1920))
 
-    for i in range(1, 2):
-        val_dir = f"dataset/dataset-testing/vid_{i}"
+    for i in range(1, 12):
+        val_dir = os.path.join(main_dir, "bitirme-1", "telefon-dataset-testing", 
+                               f"vid_{i}")
         eval_model(model_name, backbone_name, weights, val_dir, 
                    resize=(1080, 1920))
