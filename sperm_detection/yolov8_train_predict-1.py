@@ -8,6 +8,7 @@ In order to work, this script needs a directory like this:
         - yolov8_train_predict-1.py
     - config_dir
         - yolov8_train_predict-1.yaml
+        - custom_train_config.yaml
     - dataset_folder
         - test_dir
             - images

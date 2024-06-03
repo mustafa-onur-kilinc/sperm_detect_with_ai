@@ -15,7 +15,7 @@ This script requires a directory like this to work properly:
                         - video_name_1.png
                         - video_name_2.png
                         - video_name_3.png
-                        - (...
+                        - (...)
     - dataset_dir_name
          - src_dir
               - Ekran
@@ -110,7 +110,7 @@ class DrawGroundTruthYOLO():
         Converts YOLO labels from labels_file to 
         [class_id, x_left, y_top, width, height] format
     
-        Arguments
+        Parameters
         ----------
         labels_file: TXT file
             TXT file that includes YOLO labels
@@ -156,7 +156,7 @@ class DrawGroundTruthYOLO():
         Draws ground truth labels from labels_list to image_name located in 
         images_dir and displays resulting image
     
-        Arguments
+        Parameters
         ----------
         images_dir: str
             Directory of images to draw ground truth labels on
@@ -164,7 +164,6 @@ class DrawGroundTruthYOLO():
             Name of image to draw ground truth labels on
         save_dir: str
             Directory of images to save ground truth images to
-            
         labels_list: list
             Ground truth labels in [class_id, x_left, y_top, width, height] 
             format
@@ -202,7 +201,7 @@ class DrawGroundTruthYOLO():
         Draws ground truth labels to video_name located in videos_dir, 
         displays and saves resulting video
     
-        Arguments
+        Parameters
         ----------
         videos_dir: str
             Directory of video(s) to draw ground truth labels on
