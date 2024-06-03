@@ -133,13 +133,13 @@ class NeuralNetworkGUI():
         with open(yaml_dir) as yaml_file:
             args_dict = yaml.safe_load(yaml_file)
 
-        weights_dirname = args_dict["weights_dirname"]
-        yolo_weight_dirname = args_dict["yolo_weight_dirname"]
-        faster_rcnn_weight_dirname = args_dict["faster_rcnn_weight_dirname"]
-        retina_net_weight_dirname = args_dict["retina_net_weight_dirname"]
-        yolo_weight_name = args_dict["yolo_weight_name"]
-        faster_rcnn_weight_name = args_dict["faster_rcnn_weight_name"]
-        retina_net_weight_name = args_dict["retina_net_weight_name"]
+        # weights_dirname = args_dict["weights_dirname"]
+        # yolo_weight_dirname = args_dict["yolo_weight_dirname"]
+        # faster_rcnn_weight_dirname = args_dict["faster_rcnn_weight_dirname"]
+        # retina_net_weight_dirname = args_dict["retina_net_weight_dirname"]
+        # yolo_weight_name = args_dict["yolo_weight_name"]
+        # faster_rcnn_weight_name = args_dict["faster_rcnn_weight_name"]
+        # retina_net_weight_name = args_dict["retina_net_weight_name"]
 
         self.imgsz = args_dict["imgsz"]
         self.show = args_dict["show"]
@@ -210,15 +210,15 @@ class NeuralNetworkGUI():
         )
         
         self.script_dir = os.path.dirname(__file__)
-        self.weights_dir = os.path.join(self.script_dir, weights_dirname)
-        self.yolo_weights_dir = os.path.join(self.weights_dir, yolo_weight_dirname,
-                                             yolo_weight_name)
-        self.faster_rcnn_weights_dir = os.path.join(self.weights_dir,
-                                                    faster_rcnn_weight_dirname,
-                                                    faster_rcnn_weight_name)
-        self.retinanet_weights_dir = os.path.join(self.weights_dir, 
-                                                  retina_net_weight_dirname,
-                                                  retina_net_weight_name)
+        # self.weights_dir = os.path.join(self.script_dir, weights_dirname)
+        # self.yolo_weights_dir = os.path.join(self.weights_dir, yolo_weight_dirname,
+        #                                      yolo_weight_name)
+        # self.faster_rcnn_weights_dir = os.path.join(self.weights_dir,
+        #                                             faster_rcnn_weight_dirname,
+        #                                             faster_rcnn_weight_name)
+        # self.retinanet_weights_dir = os.path.join(self.weights_dir, 
+        #                                           retina_net_weight_dirname,
+        #                                           retina_net_weight_name)
 
 
     def init_window(self):
@@ -535,7 +535,8 @@ class NeuralNetworkGUI():
 
         action_label = tkinter.Label(multiframe_window, text="Action:")
         action_label.grid(row=3, column=0, padx=10, pady=5)
-        action_menu_values = ["Change ID", "Delete", "Change Class", "Swap ID"]
+        action_menu_values = ["Change ID", "Delete", "Change Class", "Swap ID",
+                              "Copy Label"]
         self.action_menu = tkinter.ttk.Combobox(multiframe_window, 
                                                 values=action_menu_values,
                                                 state="readonly")
@@ -593,6 +594,8 @@ class NeuralNetworkGUI():
             return
         
         unchanged_frames = []
+        is_label_found = False
+
         for frame_num in range(start_frame, end_frame + 1):
             image_name = self.images_list[frame_num - 1]
             self.chosen_image_name = image_name
@@ -623,8 +626,33 @@ class NeuralNetworkGUI():
                         label[0] = new_value
                     elif label[0] == new_value:
                         label[0] = label_id
+            elif action == "Copy Label":
+                # Scanning frames just to find label to copy
+                for label in self.pred_labels[1]:
+                    if label[0] == label_id:
+                        self.copied_label = label
+                        is_label_found = True
 
-            self.save_preds_to_disk()
+            if action != "Copy Label":
+                self.save_preds_to_disk()
+
+        if action == "Copy Label" and is_label_found:
+            # Iterating through frames a second time to paste label
+            for frame_num in range(start_frame, end_frame + 1):
+                image_name = self.images_list[frame_num - 1]
+                self.chosen_image_name = image_name
+                self.load_labels()
+
+                if self.copied_label not in self.pred_labels[1]:
+                    self.pred_labels[1].append(self.copied_label)
+                    self.save_preds_to_disk()
+        elif action == "Copy Label" and not is_label_found:
+            msg = "Couldn't find label to copy within frames from "
+            msg += f"{start_frame} to {end_frame}"
+            messagebox.showwarning(title="Label Not Found", 
+                                   message=msg)
+            
+            return
 
         # Reload original frame labels
         self.chosen_image_name = return_image
