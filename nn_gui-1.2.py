@@ -184,6 +184,7 @@ class NeuralNetworkGUI():
         self.x0 = self.x1 = self.y0 = self.y1 = None
         self.chosen_label_x = self.chosen_label_y = None
         self.original_pred_labels_len = None
+        self.chosen_model = ""
         
         self.selected_label = None
         self.pred_labels = []
@@ -267,6 +268,13 @@ class NeuralNetworkGUI():
                                               foreground=self.primary_color)
         self.chosen_img_label.pack(fill="none", side="top", expand=True)
 
+        self.chosen_model_label = tkinter.Label(labels_frame, 
+                                                text="Chosen Model:", 
+                                                anchor="center", 
+                                                background="gray25", 
+                                                foreground=self.primary_color)
+        self.chosen_model_label.pack(fill="none", side="top", expand=True)
+
         self.pred_complete_label = tkinter.Label(labels_frame, text="", 
                                                  anchor="center", 
                                                  background="gray25", 
@@ -313,13 +321,13 @@ class NeuralNetworkGUI():
         pred_img_button.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10, 
                              side="left", expand=True)
 
-        self.model_menu = tkinter.ttk.Combobox(options_frame, 
-                                               values=self.model_options,
-                                               background="gray90",
-                                               state="readonly", width=12)
-        self.model_menu.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10,
-                             side="left", expand=True)
-        self.model_menu.set(self.model_options[0])
+        # self.model_menu = tkinter.ttk.Combobox(options_frame, 
+        #                                        values=self.model_options,
+        #                                        background="gray90",
+        #                                        state="readonly", width=12)
+        # self.model_menu.pack(fill="none", padx=10, pady=10, ipadx=10, ipady=10,
+        #                      side="left", expand=True)
+        # self.model_menu.set(self.model_options[0])
 
         choose_weight_button = tkinter.Button(options_frame, 
                                               text="Choose Weight", 
@@ -1631,14 +1639,14 @@ class NeuralNetworkGUI():
                                  title="No Image to Predict")
             return
         
-        chosen_model = self.model_menu.get()
+        # chosen_model = self.model_menu.get()
         self.pred_labels = []
 
-        if chosen_model == "yolov8s":
+        if self.chosen_model == "yolov8s":
             self.predict_with_yolo()
-        elif chosen_model == "faster_rcnn":
+        elif self.chosen_model == "faster_rcnn":
             self.predict_with_faster_rcnn()
-        elif chosen_model == "retina_net":
+        elif self.chosen_model == "retina_net":
             self.predict_with_retina_net()
         else:
             messagebox.showerror(message="Unknown predictor!!!", 
@@ -1675,22 +1683,30 @@ class NeuralNetworkGUI():
                 or weight_name.lower().find("last") != -1):
             self.yolo_weights_dir = weight_dir
 
-            self.model_menu.set("yolov8s")
+            # self.model_menu.set("yolov8s")
+            self.chosen_model = "yolov8s"
+            self.chosen_model_label.config(text="Chosen Model: YOLOv8s")
         elif (weight_name.lower().find("faster") != -1 
                 and (weight_name.lower().find("rcnn") != -1
                 or weight_name.lower().find("r-cnn") != -1)):
             self.faster_rcnn_weights_dir = weight_dir
 
-            self.model_menu.set("faster_rcnn")
+            # self.model_menu.set("faster_rcnn")
+            self.chosen_model = "faster_rcnn"
+            self.chosen_model_label.config(text="Chosen Model: Faster R-CNN")
         elif weight_name.lower().find("retina") != -1:
             self.retinanet_weights_dir = weight_dir
 
-            self.model_menu.set("retina_net")
+            # self.model_menu.set("retina_net")
+            self.chosen_model = "retina_net"
+            self.chosen_model_label.config(text="Chosen Model: RetinaNet")
         else:
             msg = "Please make sure you have chosen a suitable model!\n"
             msg += "You can choose a model from the dropdown menu if you want."
 
             messagebox.showerror(title="Unknown Choice", message=msg)            
+            self.chosen_model = ""
+            self.chosen_model_label.config(text="Chosen Model:")
 
     def predict_with_yolo(self):
         """
