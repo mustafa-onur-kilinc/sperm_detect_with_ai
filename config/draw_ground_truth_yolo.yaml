@@ -9,4 +9,6 @@ is_src_dir_Telefon: False
 
 video_name: "Vid0065"
 
+# If True, saves ground truth labels added images 
+# If False, saves ground truth labels added videos
 save_ground_truth_images: True
