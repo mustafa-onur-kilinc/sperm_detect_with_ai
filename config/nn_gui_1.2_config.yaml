@@ -1,11 +1,11 @@
 # Directory names to access trained weights for models
-weights_dirname: "weights"
-yolo_weight_dirname: "yolov8"
-faster_rcnn_weight_dirname: "faster_rcnn"
-retina_net_weight_dirname: "retina_net"
-yolo_weight_name: "ekran_best.pt"
-faster_rcnn_weight_name: "FasterRCNN_resnet50_epoch_20.pth"
-retina_net_weight_name: "RetinaNet_resnet50_epoch_18.pth"
+# weights_dirname: "weights"
+# yolo_weight_dirname: "yolov8"
+# faster_rcnn_weight_dirname: "faster_rcnn"
+# retina_net_weight_dirname: "retina_net"
+# yolo_weight_name: "ekran_best.pt"
+# faster_rcnn_weight_name: "FasterRCNN_resnet50_epoch_20.pth"
+# retina_net_weight_name: "RetinaNet_resnet50_epoch_18.pth"
 
 # Predict args for YOLO
 imgsz: [1920, 1080]
