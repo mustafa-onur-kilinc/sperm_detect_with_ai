@@ -52,7 +52,7 @@ def train(
     model_name,
     backbone_name,
     dataset_path,
-    save_dir=r"sperm-detection/runs/train",
+    save_dir=r"sperm_detection/runs/train",
     hyperparams=None,
     resize=(1080, 1920),
     save_period=2,
