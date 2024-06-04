@@ -18,7 +18,7 @@ def extract_annotations(json_path, output_path):
 
     for track in tqdm(
         data[0]["annotations"][0]["result"],
-        desc=f"Extracting annotations from {json_path}..",
+        desc=f"Extracting annotations from {json_path}...",
     ):
         # print(track.keys())
         # print(track["value"].keys())
@@ -44,16 +44,21 @@ def extract_annotations(json_path, output_path):
 
 
 if __name__ == "__main__":
-    os.makedirs("labels", exist_ok=True)
-    output_path = f"labels-original"
-    data_path = "Skelometrik"
+    output_path = os.path.join("labels", f"labels-original")
+    os.makedirs(output_path, exist_ok=True)
+    data_path = "Hamza_Hoca_Dataset"
 
     for folder in os.listdir(data_path):
         folder_path = os.path.join(data_path, folder)
-        for file in os.listdir(folder_path):
-            if file.endswith(".json"):
-                json_path = os.path.join(folder_path, file)
-                extract_annotations(json_path, output_path)
+
+        for ekran_telefon_folder in os.listdir(folder_path):
+            ekran_telefon_folder = os.path.join(folder_path, 
+                                                ekran_telefon_folder)
+            
+            for file in os.listdir(ekran_telefon_folder):
+                if file.endswith(".json"):
+                    json_path = os.path.join(ekran_telefon_folder, file)
+                    extract_annotations(json_path, output_path)
 
     # extract_annotations(json_path, output_path)
 

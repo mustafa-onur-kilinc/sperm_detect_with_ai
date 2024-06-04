@@ -78,7 +78,7 @@ def origin_to_yolo_coordinates(labels_dir, output_labels_dir):
 
 if __name__ == "__main__":
 
-    labels_dir = f"labels-original"
+    labels_dir = f"labels/labels-original"
     output_dir = f"labels-yolo"
     img_size = (1920, 1080)
 
