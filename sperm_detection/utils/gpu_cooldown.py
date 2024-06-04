@@ -1,5 +1,6 @@
 """
-Script by Özgün Zeki BOZKURT
+Script for pausing training process when gpu temperature goes above a threshold for cooldown.
+Implemented because of personal hardware specific problems usage of it is not necessary.
 """
 
 import time

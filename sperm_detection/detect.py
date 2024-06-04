@@ -1,11 +1,5 @@
 """
-Script by Özgün Zeki BOZKURT.
-
-Made very minor changes by Mustafa Onur KILINÇ to obey 
-PEP8 maximum line length. Didn't test the script after making these 
-changes but considering they are minor changes like defining string 
-variables, turning ternary operators to if-else blocks and adding 
-newlines before parameters of functions, it should be fine.
+Function (detect_video) for applying tracking to an input video.
 """
 
 import sys
@@ -137,14 +131,14 @@ def detect_video(model, device, video_path):
 
 
 if __name__ == "__main__":
-    # Broke ternary operator used here to obey PEP8 max line length
+    # Sample Usage
     if torch.cuda.is_available():
         device = torch.device("cuda") 
     else: 
         torch.device("cpu")
     model_name = "faster-rcnn"
     backbone_name = "resnet50"
-    weights_path = r"sperm-detection\runs\train\run_9\FasterRCNN_resnet50_epoch_20.pth"
+    weights_path = r"weights_path"
     model = get_model(model_name, backbone_name, weights_path)
     model.eval()
     model.to(device)

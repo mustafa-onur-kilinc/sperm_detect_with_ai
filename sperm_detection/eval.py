@@ -1,11 +1,6 @@
 """
-Script by Özgün Zeki BOZKURT.
-
-Made very minor changes by Mustafa Onur KILINÇ to obey 
-PEP8 maximum line length. Didn't test the script after making these 
-changes but considering they are minor changes like defining string 
-variables, turning ternary operators to if-else blocks and adding 
-newlines before parameters of functions, it should be fine.
+Script to evaluate model performance on test dataset.
+Outputs result on runs/eval directory.
 """
 
 import sys
@@ -194,6 +189,7 @@ def eval_model(
 
 
 if __name__ == "__main__":
+    # Sample Usage
     script_dir = os.path.dirname(__file__)
     main_dir = os.path.split(script_dir)[0]
 

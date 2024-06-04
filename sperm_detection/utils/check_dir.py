@@ -1,5 +1,7 @@
 """
-Script by Özgün Zeki BOZKURT
+Utility function to create a new subdirectory
+under runs/train, runs/detect, runs/eval
+for recording information about those specific processes seperately for different runs.
 """
 
 import os

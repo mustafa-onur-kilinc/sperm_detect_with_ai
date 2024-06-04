@@ -1,11 +1,6 @@
 """
-Script by Özgün Zeki BOZKURT. 
-
-Made very minor changes by Mustafa Onur KILINÇ to obey 
-PEP8 maximum line length. Didn't test the script after making these 
-changes but considering they are minor changes like defining string 
-variables, turning ternary operators to if-else blocks and adding 
-newlines before parameters of functions, it should be fine.
+Training script for faster r-cnn and retinanet models sample usage under main function.
+The training information & model weights are saved under runs/train directory.
 """
 
 import sys
@@ -248,6 +243,24 @@ def train(
 
 
 if __name__ == "__main__":
+    '''
+    model-backbone pairs: (faster-rcnn, mobilenet), (faster-rcnn, resnet50), (retinanet, resnet50)
+    
+    dataset structure:
+
+    dataset
+        -test
+            -images
+            -labels #(YOLO FORMAT)
+            -labels-corner-coordinates
+            -labels-original
+        -train
+            -images
+            -labels #(YOLO FORMAT)
+            -labels-corner-coordinates
+            -labels-original
+    '''
+
     model_name = "faster-rcnn"
     backbone_name = "resnet50"
     dataset_path = r"dataset/dataset-split1"

@@ -1,5 +1,5 @@
 """
-Script by Özgün Zeki BOZKURT.
+Function to load faster r-cnn and retinanet models.
 """
 
 import torch

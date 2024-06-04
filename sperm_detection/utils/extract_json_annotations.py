@@ -1,5 +1,6 @@
 """
-Script by Özgün Zeki BOZKURT
+Script for extracting multi-frame annotations (original annotations of dataset we used)
+to frame-by frame json annotations under an output folder
 """
 
 import cv2
@@ -44,54 +45,9 @@ def extract_annotations(json_path, output_path):
 
 
 if __name__ == "__main__":
-    output_path = os.path.join("labels", f"labels-original")
-    os.makedirs(output_path, exist_ok=True)
-    data_path = "Hamza_Hoca_Dataset"
+    # Sample usage
+    json_multiframe_annotations_path = "labels.json" 
+    output_path = "output_folder"
+    extract_annotations(json_multiframe_annotations_path, output_path)
+    
 
-    for folder in os.listdir(data_path):
-        folder_path = os.path.join(data_path, folder)
-
-        for ekran_telefon_folder in os.listdir(folder_path):
-            ekran_telefon_folder = os.path.join(folder_path, 
-                                                ekran_telefon_folder)
-            
-            for file in os.listdir(ekran_telefon_folder):
-                if file.endswith(".json"):
-                    json_path = os.path.join(ekran_telefon_folder, file)
-                    extract_annotations(json_path, output_path)
-
-    # extract_annotations(json_path, output_path)
-
-    """
-    image_path = f"dataset-2\Ekran_1\Vid0177\Vid0177_1.png"
-    image = cv2.imread(image_path)
-
-    img_height, img_width = image.shape[:2]
-
-    # Iterate through annotations and draw bounding boxes
-    annos_path = f"labels\Vid0177_1.txt"
-
-    with open(annos_path) as f:
-        annotations = f.readlines()
-
-    for annotation in annotations:
-        class_label, rel_x, rel_y, rel_width, rel_height = map(
-            float, annotation.split()
-        )
-
-        # Calculate absolute coordinates
-        x = int(rel_x * img_width / 100)
-        y = int(rel_y * img_height / 100)
-        width = int(rel_width * img_width / 100)
-        height = int(rel_height * img_height / 100)
-
-        # Draw bounding box
-        color = (0, 255, 0)  # Green color for the bounding box
-        thickness = 2
-        cv2.rectangle(image, (x, y), (x + width, y + height), color, thickness)
-
-    # Display the image
-    cv2.imshow("Image with Bounding Boxes", image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    """

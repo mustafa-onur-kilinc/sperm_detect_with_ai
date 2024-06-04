@@ -1,11 +1,5 @@
 """
-Script by Özgün Zeki BOZKURT.
-
-Made very minor changes by Mustafa Onur KILINÇ to obey 
-PEP8 maximum line length. Didn't test the script after making these 
-changes but considering they are minor changes like defining string 
-variables, turning ternary operators to if-else blocks and adding 
-newlines before parameters of functions, it should be fine.
+Tracking module implementation
 """
 
 import cv2

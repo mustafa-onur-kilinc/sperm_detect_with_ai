@@ -1,5 +1,7 @@
 """
-Script by Özgün Zeki BOZKURT
+Script for performing conversions between different labelling formats.
+Specifically YOLO -> Corner-Coordinates
+And conversion for original json annotation bbox format (origin)
 """
 
 import os
@@ -77,7 +79,7 @@ def origin_to_yolo_coordinates(labels_dir, output_labels_dir):
 
 
 if __name__ == "__main__":
-
+    # Sample usage
     labels_dir = f"labels/labels-original"
     output_dir = f"labels-yolo"
     img_size = (1920, 1080)

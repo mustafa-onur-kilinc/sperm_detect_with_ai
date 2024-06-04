@@ -1,5 +1,5 @@
 """
-Script by Özgün Zeki BOZKURT
+Script for splitting dataset for train-test
 """
 
 import os
