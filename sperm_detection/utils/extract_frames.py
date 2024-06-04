@@ -44,12 +44,17 @@ def extract_frames(input_video, output_folder):
 
 if __name__ == "__main__":
     output_path = f"dataset/images"
-    data_path = "Skelometrik"
+    data_path = "Hamza_Hoca_Dataset"
 
     for folder in os.listdir(data_path):
         folder_path = os.path.join(data_path, folder)
-        for file in os.listdir(folder_path):
-            if file.endswith(".mp4"):
-                print(file)
-                video_path = os.path.join(folder_path, file)
-                extract_frames(video_path, output_path)
+
+        for ekran_telefon_folder in os.listdir(folder_path):
+            ekran_telefon_folder = os.path.join(folder_path, 
+                                                ekran_telefon_folder)
+            
+            for file in os.listdir(ekran_telefon_folder):
+                if file.endswith(".mp4"):
+                    print(file)
+                    video_path = os.path.join(ekran_telefon_folder, file)
+                    extract_frames(video_path, output_path)
